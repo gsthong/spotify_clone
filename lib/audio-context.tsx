@@ -3,6 +3,21 @@
 import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { AudioState, Track } from './types';
 
+const PROXY_URL = process.env.NEXT_PUBLIC_PROXY_URL || 'http://localhost:3001';
+const CLIENT_CACHE_TTL_MS = 25 * 60 * 1000;
+
+interface StreamCacheEntry {
+  url: string;
+  expiresAt: number;
+}
+
+interface StreamResponse {
+  url: string;
+  title?: string;
+  thumbnail?: string;
+  duration?: number;
+}
+
 interface AudioContextType {
   state: AudioState;
   play: (track?: Track) => void;
@@ -21,6 +36,15 @@ interface AudioContextType {
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
+// ─── YouTube ID detection ──────────────────────────────────────
+function isYouTubeId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]{11}$/.test(id);
+}
+
+function isAlreadyResolved(url: string): boolean {
+  return url.startsWith('http') && (url.includes('googlevideo') || url.includes('youtube'));
+}
+
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AudioState>({
     currentTrack: null,
@@ -34,15 +58,34 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Use ref for queue/index so callbacks always see latest values (avoid stale closure)
   const queueRef = useRef<Track[]>([]);
   const queueIndexRef = useRef(0);
   const isPlayingRef = useRef(false);
+  const streamCacheRef = useRef<Map<string, StreamCacheEntry>>(new Map());
 
-  // Keep refs in sync with state
   useEffect(() => { queueRef.current = state.queue; }, [state.queue]);
   useEffect(() => { queueIndexRef.current = state.currentQueueIndex; }, [state.currentQueueIndex]);
   useEffect(() => { isPlayingRef.current = state.isPlaying; }, [state.isPlaying]);
+
+  // ─── Stream URL resolver with client-side cache ──────────────
+  const resolveStreamUrl = useCallback(async (youtubeId: string): Promise<string> => {
+    const cache = streamCacheRef.current;
+    const cached = cache.get(youtubeId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.url;
+    }
+
+    try {
+      const res = await fetch(`${PROXY_URL}/stream?id=${youtubeId}`);
+      if (!res.ok) return '';
+      const data: StreamResponse = await res.json();
+      if (!data.url) return '';
+      cache.set(youtubeId, { url: data.url, expiresAt: Date.now() + CLIENT_CACHE_TTL_MS });
+      return data.url;
+    } catch {
+      return '';
+    }
+  }, []);
 
   const playAudioSrc = useCallback(() => {
     const audio = audioRef.current;
@@ -62,6 +105,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Resolve the effective URL for a track (checks cache, fetches if needed)
+  const getPlayableUrl = useCallback(async (track: Track): Promise<string> => {
+    if (track.url && isAlreadyResolved(track.url)) return track.url;
+    if (track.url && track.url.startsWith('http') && !isYouTubeId(track.id)) return track.url;
+    if (isYouTubeId(track.id)) return resolveStreamUrl(track.id);
+    return track.url;
+  }, [resolveStreamUrl]);
+
   // Initialize audio element once
   useEffect(() => {
     const audio = new Audio();
@@ -73,23 +124,46 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleEnded = () => {
-      // Use refs to avoid stale closure
       const queue = queueRef.current;
       const idx = queueIndexRef.current;
+      if (queue.length === 0) return;
       const nextIndex = (idx + 1) % queue.length;
       const next = queue[nextIndex];
-      if (next) {
-        audio.src = next.url;
-        audio.currentTime = 0;
-        playAudioSrc();
-        setState(prev => ({
-          ...prev,
-          currentTrack: next,
-          currentQueueIndex: nextIndex,
-          currentTime: 0,
-          isPlaying: true,
-        }));
-      }
+      if (!next) return;
+
+      setState(prev => ({
+        ...prev,
+        currentTrack: next,
+        currentQueueIndex: nextIndex,
+        currentTime: 0,
+        isPlaying: true,
+      }));
+
+      // Resolve URL asynchronously for next track
+      (async () => {
+        const url = await (isYouTubeId(next.id)
+          ? (async () => {
+              const cache = streamCacheRef.current;
+              const cached = cache.get(next.id);
+              if (cached && Date.now() < cached.expiresAt) return cached.url;
+              try {
+                const res = await fetch(`${PROXY_URL}/stream?id=${next.id}`);
+                if (!res.ok) return '';
+                const data: StreamResponse = await res.json();
+                if (!data.url) return '';
+                cache.set(next.id, { url: data.url, expiresAt: Date.now() + CLIENT_CACHE_TTL_MS });
+                return data.url;
+              } catch { return ''; }
+            })()
+          : Promise.resolve(next.url));
+        if (url) {
+          audio.src = url;
+          audio.currentTime = 0;
+          audio.play().catch(err => {
+            if (err.name !== 'AbortError') console.error('[audio] auto-next error:', err);
+          });
+        }
+      })();
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -108,20 +182,29 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     if (track) {
       audio.pause();
-      audio.src = track.url;
-      audio.currentTime = 0;
       setState(prev => ({
         ...prev,
         currentTrack: track,
         isPlaying: true,
         currentTime: 0,
       }));
-      playAudioSrc();
+
+      (async () => {
+        const url = await getPlayableUrl(track);
+        if (!url) {
+          console.warn('[audio] Could not resolve stream for:', track.id);
+          setState(prev => ({ ...prev, isPlaying: false }));
+          return;
+        }
+        audio.src = url;
+        audio.currentTime = 0;
+        playAudioSrc();
+      })();
     } else if (audio.paused) {
       audio.play().catch(() => {});
       setState(prev => ({ ...prev, isPlaying: true }));
     }
-  }, [playAudioSrc]);
+  }, [playAudioSrc, getPlayableUrl]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -166,8 +249,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!next || !audio) return;
 
     audio.pause();
-    audio.src = next.url;
-    audio.currentTime = 0;
 
     setState(prev => ({
       ...prev,
@@ -176,15 +257,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       currentTime: 0,
     }));
 
-    if (isPlayingRef.current) playAudioSrc();
-  }, [playAudioSrc]);
+    (async () => {
+      const url = await getPlayableUrl(next);
+      if (!url) return;
+      audio.src = url;
+      audio.currentTime = 0;
+      if (isPlayingRef.current) playAudioSrc();
+    })();
+  }, [playAudioSrc, getPlayableUrl]);
 
   const previousTrack = useCallback(() => {
     const audio = audioRef.current;
     const queue = queueRef.current;
     const idx = queueIndexRef.current;
 
-    // If >3s in, restart; else go to previous
     if (audio && audio.currentTime > 3) {
       audio.currentTime = 0;
       setState(prev => ({ ...prev, currentTime: 0 }));
@@ -196,8 +282,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!prev_ || !audio) return;
 
     audio.pause();
-    audio.src = prev_.url;
-    audio.currentTime = 0;
 
     setState(prev => ({
       ...prev,
@@ -206,15 +290,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       currentTime: 0,
     }));
 
-    if (isPlayingRef.current) playAudioSrc();
-  }, [playAudioSrc]);
+    (async () => {
+      const url = await getPlayableUrl(prev_);
+      if (!url) return;
+      audio.src = url;
+      audio.currentTime = 0;
+      if (isPlayingRef.current) playAudioSrc();
+    })();
+  }, [playAudioSrc, getPlayableUrl]);
 
   const setQueue = useCallback((tracks: Track[], startIndex = 0) => {
     const track = tracks[startIndex] || null;
-    const audio = audioRef.current;
-    if (audio && track) {
-      audio.src = track.url;
-    }
     setState(prev => ({
       ...prev,
       queue: tracks,
@@ -241,7 +327,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // FIX: was setting '--accent-color' instead of '--color-accent'
   const setAccentColor = useCallback((color: string) => {
     setState(prev => ({ ...prev, accentColor: color }));
     document.documentElement.style.setProperty('--color-accent', color);

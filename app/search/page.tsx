@@ -1,40 +1,158 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/lib/audio-context';
+import { useYouTubeSearch } from '@/hooks/use-youtube-search';
 import { MOCK_TRACKS } from '@/lib/mock-data';
-import { Search as SearchIcon, Play } from 'lucide-react';
+import { Track } from '@/lib/types';
+import { Search as SearchIcon, Loader2 } from 'lucide-react';
 
 const BROWSE_CATEGORIES = [
-  { label: 'Suy 🌧', color: '#4a1a7a', mood: 'suy' },
-  { label: 'Overdose ⚡', color: '#b33000', mood: 'overdose' },
-  { label: 'Hype 🔥', color: '#006450', mood: 'hype' },
-  { label: 'Chill 🌿', color: '#0d73ec', mood: 'chill' },
+  { label: 'Suy 🌧', color: '#4a1a7a', mood: 'suy' as const },
+  { label: 'Overdose ⚡', color: '#b33000', mood: 'overdose' as const },
+  { label: 'Hype 🔥', color: '#006450', mood: 'hype' as const },
+  { label: 'Chill 🌿', color: '#0d73ec', mood: 'chill' as const },
   { label: 'All tracks', color: '#503750', mood: null },
 ];
 
+const MOOD_FILTERS = ['all', 'suy', 'overdose', 'hype', 'chill'] as const;
+type MoodFilter = typeof MOOD_FILTERS[number];
+
+function TrackSkeleton() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '8px 16px',
+        borderRadius: '8px',
+      }}
+    >
+      <div
+        style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '4px',
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          animation: 'pulse 1.5s ease-in-out infinite',
+          flexShrink: 0,
+        }}
+      />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div
+          style={{
+            width: '60%',
+            height: '14px',
+            borderRadius: '4px',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}
+        />
+        <div
+          style={{
+            width: '40%',
+            height: '12px',
+            borderRadius: '4px',
+            backgroundColor: 'rgba(255,255,255,0.07)',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}
+        />
+      </div>
+      <div
+        style={{
+          width: '36px',
+          height: '12px',
+          borderRadius: '4px',
+          backgroundColor: 'rgba(255,255,255,0.07)',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }}
+      />
+    </div>
+  );
+}
+
 export default function SearchPage() {
   const { state, play, setQueue } = useAudio();
-  const [query, setQuery] = useState('');
+  const { search } = useYouTubeSearch();
 
-  const results = query
-    ? MOCK_TRACKS.filter(t =>
-        t.title.toLowerCase().includes(query.toLowerCase()) ||
-        t.artist.toLowerCase().includes(query.toLowerCase())
-      )
-    : [];
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeMood, setActiveMood] = useState<MoodFilter>('all');
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setQuery(val);
+      setActiveMood('all');
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      if (!val.trim()) {
+        setResults([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      debounceRef.current = setTimeout(async () => {
+        const tracks = await search(val.trim());
+        setResults(tracks);
+        setIsLoading(false);
+      }, 400);
+    },
+    [search]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const filteredResults =
+    activeMood === 'all'
+      ? results
+      : results.filter(t => t.mood === activeMood);
+
+  const handleTrackClick = useCallback(
+    (track: Track, index: number) => {
+      setQueue(filteredResults, index);
+      play(track);
+    },
+    [filteredResults, setQueue, play]
+  );
+
+  const showResults = query.trim().length > 0;
 
   return (
-    <div className="h-full overflow-y-auto" style={{ backgroundColor: 'var(--sp-bg)', padding: '24px' }}>
+    <div
+      className="h-full overflow-y-auto"
+      style={{ backgroundColor: 'var(--sp-bg)', padding: '24px' }}
+    >
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
+
       {/* Search input */}
-      <div className="relative mb-8" style={{ maxWidth: '360px' }}>
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2" size={16} color="#121212" />
+      <div className="relative mb-6" style={{ maxWidth: '360px' }}>
+        <SearchIcon
+          className="absolute left-3 top-1/2 -translate-y-1/2"
+          size={16}
+          color="#121212"
+        />
         <input
           type="text"
           placeholder="What do you want to play?"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={handleQueryChange}
           style={{
             width: '100%',
             backgroundColor: 'white',
@@ -49,69 +167,193 @@ export default function SearchPage() {
         />
       </div>
 
-      {query ? (
-        /* Search results */
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 900, color: 'white', marginBottom: '16px' }}>
-            Results for "{query}"
-          </h2>
-          {results.length > 0 ? results.map((track, i) => (
-            <motion.div
-              key={track.id}
-              onClick={() => { setQueue(MOCK_TRACKS, MOCK_TRACKS.indexOf(track)); play(track); }}
-              className="flex items-center gap-4 px-4 py-2 rounded-md cursor-pointer"
-              style={{ transition: 'background 0.1s' }}
-              whileHover={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
-            >
-              <img src={track.albumArt} alt="" style={{ width: '48px', height: '48px', borderRadius: '4px', objectFit: 'cover' }} />
-              <div className="flex-1 min-w-0">
-                <p style={{ fontSize: '15px', fontWeight: 500, color: state.currentTrack?.id === track.id ? 'var(--sp-green)' : 'white' }}>
-                  {track.title}
-                </p>
-                <p style={{ fontSize: '13px', color: 'var(--sp-text-secondary)' }}>{track.artist}</p>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--sp-text-secondary)' }}>
-                {Math.floor(track.duration / 60)}:{String(track.duration % 60).padStart(2, '0')}
-              </p>
-            </motion.div>
-          )) : (
-            <p style={{ color: 'var(--sp-text-secondary)' }}>No results found for "{query}"</p>
-          )}
-        </div>
-      ) : (
-        /* Browse categories */
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 900, color: 'white', marginBottom: '16px' }}>Browse by mood</h2>
-          <div className="grid grid-cols-4 gap-4">
-            {BROWSE_CATEGORIES.map(cat => (
-              <motion.div
-                key={cat.label}
-                onClick={() => {
-                  const tracks = cat.mood ? MOCK_TRACKS.filter(t => t.mood === cat.mood) : MOCK_TRACKS;
-                  if (tracks.length) { setQueue(tracks, 0); play(tracks[0]); }
-                }}
-                className="relative overflow-hidden rounded-lg cursor-pointer"
-                style={{ backgroundColor: cat.color, aspectRatio: '1', padding: '16px' }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <p style={{ fontSize: '18px', fontWeight: 900, color: 'white', lineHeight: 1.2 }}>{cat.label}</p>
-                <div
-                  className="absolute bottom-0 right-0"
+      <AnimatePresence mode="wait">
+        {showResults ? (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* Mood filter pills */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              {MOOD_FILTERS.map(mood => (
+                <button
+                  key={mood}
+                  onClick={() => setActiveMood(mood)}
                   style={{
-                    width: '70px', height: '70px',
-                    backgroundImage: `url(${MOCK_TRACKS[0].albumArt})`,
-                    backgroundSize: 'cover',
-                    borderRadius: '4px',
-                    transform: 'rotate(25deg) translate(10px, 10px)',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                    padding: '4px 14px',
+                    borderRadius: '500px',
+                    border: '1px solid',
+                    borderColor: activeMood === mood ? 'var(--sp-green)' : 'rgba(255,255,255,0.2)',
+                    backgroundColor: activeMood === mood ? 'var(--sp-green)' : 'transparent',
+                    color: activeMood === mood ? '#000' : 'var(--sp-text-secondary)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textTransform: 'capitalize',
+                    transition: 'all 0.15s',
                   }}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+                >
+                  {mood}
+                </button>
+              ))}
+            </div>
+
+            <h2
+              style={{
+                fontSize: '22px',
+                fontWeight: 900,
+                color: 'white',
+                marginBottom: '16px',
+              }}
+            >
+              Results for &ldquo;{query}&rdquo;
+            </h2>
+
+            {isLoading ? (
+              <div>
+                <TrackSkeleton />
+                <TrackSkeleton />
+                <TrackSkeleton />
+              </div>
+            ) : filteredResults.length > 0 ? (
+              filteredResults.map((track, i) => (
+                <motion.div
+                  key={`${track.id}-${i}`}
+                  onClick={() => handleTrackClick(track, i)}
+                  className="flex items-center gap-4 px-4 py-2 rounded-md cursor-pointer"
+                  style={{ transition: 'background 0.1s' }}
+                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
+                >
+                  <img
+                    src={track.albumArt}
+                    alt=""
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '4px',
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 500,
+                        color:
+                          state.currentTrack?.id === track.id
+                            ? 'var(--sp-green)'
+                            : 'white',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {track.title}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: '13px',
+                        color: 'var(--sp-text-secondary)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {track.artist}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--sp-text-secondary)', flexShrink: 0 }}>
+                    {Math.floor(track.duration / 60)}:
+                    {String(track.duration % 60).padStart(2, '0')}
+                  </p>
+                </motion.div>
+              ))
+            ) : (
+              <p style={{ color: 'var(--sp-text-secondary)' }}>
+                No results found for &ldquo;{query}&rdquo;
+              </p>
+            )}
+
+            {isLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: 'var(--sp-text-secondary)', fontSize: '13px' }}>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                Searching YouTube Music…
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          /* Browse categories */
+          <motion.div
+            key="browse"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+          >
+            <h2
+              style={{
+                fontSize: '22px',
+                fontWeight: 900,
+                color: 'white',
+                marginBottom: '16px',
+              }}
+            >
+              Browse by mood
+            </h2>
+            <div className="grid grid-cols-4 gap-4">
+              {BROWSE_CATEGORIES.map(cat => (
+                <motion.div
+                  key={cat.label}
+                  onClick={() => {
+                    const tracks = cat.mood
+                      ? MOCK_TRACKS.filter(t => t.mood === cat.mood)
+                      : MOCK_TRACKS;
+                    if (tracks.length) {
+                      setQueue(tracks, 0);
+                      play(tracks[0]);
+                    }
+                  }}
+                  className="relative overflow-hidden rounded-lg cursor-pointer"
+                  style={{
+                    backgroundColor: cat.color,
+                    aspectRatio: '1',
+                    padding: '16px',
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <p
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 900,
+                      color: 'white',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {cat.label}
+                  </p>
+                  <div
+                    className="absolute bottom-0 right-0"
+                    style={{
+                      width: '70px',
+                      height: '70px',
+                      backgroundImage: `url(${MOCK_TRACKS[0].albumArt})`,
+                      backgroundSize: 'cover',
+                      borderRadius: '4px',
+                      transform: 'rotate(25deg) translate(10px, 10px)',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
