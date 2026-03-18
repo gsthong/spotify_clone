@@ -304,7 +304,7 @@ export default function SearchPage() {
             >
               Browse by mood
             </h2>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {BROWSE_CATEGORIES.map(cat => (
                 <motion.div
                   key={cat.label}
@@ -322,6 +322,8 @@ export default function SearchPage() {
                     backgroundColor: cat.color,
                     aspectRatio: '1',
                     padding: '16px',
+                    height: 'auto',
+                    minHeight: '100px',
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -344,7 +346,7 @@ export default function SearchPage() {
                       backgroundImage: `url(${MOCK_TRACKS[0].albumArt})`,
                       backgroundSize: 'cover',
                       borderRadius: '4px',
-                      transform: 'rotate(25deg) translate(10px, 10px)',
+                      transform: 'rotate(25deg) translate(20px, 10px)',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
                     }}
                   />
