@@ -10,7 +10,7 @@ export const MOCK_TRACKS: Track[] = [
     mood: 'suy',
     plays: 3200000,
     url: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
-    albumArt: 'https://images.unsplash.com/photo-1614613535308-eb5fbd8f2c81?w=400&h=400&fit=crop',
+    albumArt: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&h=400&fit=crop',
   },
   {
     id: '2',

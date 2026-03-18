@@ -6,74 +6,88 @@ import { PlayerBar } from './player-bar';
 import { NowPlayingScreen } from './now-playing-screen';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col" style={{ height: '100vh', backgroundColor: '#000' }}>
-      {/* Top area: sidebar + main */}
-      <div className="flex flex-1 gap-2 overflow-hidden p-2 pb-0">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#000', gap: '8px' }}>
+
+      {/* Main area = sidebar + content, padded */}
+      <div style={{ display: 'flex', flex: 1, gap: '8px', overflow: 'hidden', padding: '8px 8px 0 8px' }}>
+
         {/* Sidebar */}
         <Sidebar />
 
-        {/* Main content area */}
-        <div
-          className="flex-1 rounded-lg overflow-hidden flex flex-col"
-          style={{ backgroundColor: 'var(--sp-bg)' }}
-        >
-          {/* Top nav bar */}
+        {/* Content panel */}
+        <div style={{ flex: 1, borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: '#121212' }}>
+
+          {/* Top navigation bar */}
           <div
-            className="flex items-center justify-between px-6 py-3 flex-shrink-0"
-            style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)' }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 24px', flexShrink: 0,
+              backgroundColor: 'rgba(18,18,18,0.85)',
+              backdropFilter: 'blur(12px)',
+              position: 'sticky', top: 0, zIndex: 10,
+            }}
           >
-            <div className="flex gap-2">
+            {/* Back/forward */}
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => window.history.back()}
-                className="flex items-center justify-center w-8 h-8 rounded-full"
-                style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: 'white' }}
-              >
-                ‹
-              </button>
-              <button
-                onClick={() => window.history.forward()}
-                className="flex items-center justify-center w-8 h-8 rounded-full"
-                style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: 'white' }}
-              >
-                ›
-              </button>
-            </div>
-
-            {/* Stats link in top right */}
-            <Link href="/stats">
-              <div
-                className="flex items-center gap-2 px-4 py-2 rounded-full"
                 style={{
-                  backgroundColor: pathname === '/stats' ? 'white' : 'rgba(0,0,0,0.6)',
-                  color: pathname === '/stats' ? 'black' : 'white',
-                  fontSize: '14px',
-                  fontWeight: 700,
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  backgroundColor: 'rgba(0,0,0,0.7)', color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer',
                 }}
               >
-                <BarChart2 size={16} />
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={() => window.history.forward()}
+                style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  backgroundColor: 'rgba(0,0,0,0.7)', color: '#b3b3b3',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            {/* Right side — stats link */}
+            <Link href="/stats">
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '6px 16px', borderRadius: '500px',
+                  backgroundColor: pathname === '/stats' ? 'white' : 'rgba(0,0,0,0.6)',
+                  color: pathname === '/stats' ? '#121212' : 'white',
+                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+              >
+                <BarChart2 size={15} />
                 Stats
               </div>
             </Link>
           </div>
 
           {/* Page content */}
-          <div className="flex-1 overflow-hidden">
+          <div style={{ flex: 1, overflow: 'hidden' }}>
             {children}
           </div>
         </div>
       </div>
 
-      {/* Player bar */}
+      {/* Player bar — sticks to bottom */}
       <PlayerBar />
 
-      {/* Full screen now playing overlay */}
+      {/* Full screen overlay */}
       <NowPlayingScreen />
     </div>
   );

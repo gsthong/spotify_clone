@@ -11,32 +11,130 @@ import {
   Heart, Maximize2, ListMusic,
 } from 'lucide-react';
 
+function ProgressBar({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState(false);
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!ref.current || !max) return;
+    const rect = ref.current.getBoundingClientRect();
+    onChange(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * max);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="relative flex items-center cursor-pointer"
+      style={{ height: '16px', flex: 1 }}
+    >
+      {/* Track bg */}
+      <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+      {/* Fill */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          height: '4px',
+          width: `${pct}%`,
+          backgroundColor: hovered ? '#1db954' : 'white',
+          transition: 'background-color 0.1s, width 0.1s linear',
+        }}
+      />
+      {/* Thumb — show on hover */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: '12px', height: '12px',
+          left: `${pct}%`,
+          transform: 'translateX(-50%)',
+          backgroundColor: 'white',
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.15s',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+        }}
+      />
+    </div>
+  );
+}
+
+function VolumeBar({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState(false);
+  const pct = value * 100;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    onChange(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+  };
+
+  return (
+    <div
+      ref={ref}
+      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="relative flex items-center cursor-pointer"
+      style={{ height: '16px', width: '90px' }}
+    >
+      <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+      <div
+        className="absolute rounded-full"
+        style={{
+          height: '4px', width: `${pct}%`,
+          backgroundColor: hovered ? '#1db954' : 'white',
+          transition: 'background-color 0.1s',
+        }}
+      />
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: '12px', height: '12px',
+          left: `${pct}%`,
+          transform: 'translateX(-50%)',
+          backgroundColor: 'white',
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.15s',
+        }}
+      />
+    </div>
+  );
+}
+
+function CtrlBtn({ children, onClick, active }: any) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ color: active ? '#1db954' : '#b3b3b3', transition: 'color 0.1s', lineHeight: 0 }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'white'; }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#b3b3b3'; }}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function PlayerBar() {
   const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute } = useAudio();
   const { openNowPlaying } = useNowPlaying();
-  const progressRef = useRef<HTMLDivElement>(null);
   const [isFavorite, setIsFavorite] = useState(false);
 
   const duration = state.currentTrack?.duration ?? 0;
-  const progressPercent = duration > 0 ? Math.min(100, (state.currentTime / duration) * 100) : 0;
-
-  const handleProgressClick = useCallback((e: React.MouseEvent) => {
-    if (!progressRef.current || !duration) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    seek(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration);
-  }, [duration, seek]);
 
   return (
     <div
       className="flex items-center px-4"
       style={{
         height: '90px',
-        backgroundColor: 'var(--sp-player)',
+        backgroundColor: '#181818',
         borderTop: '1px solid rgba(255,255,255,0.08)',
         flexShrink: 0,
       }}
     >
-      {/* LEFT — track info */}
+      {/* LEFT — track info (30%) */}
       <div className="flex items-center gap-3" style={{ width: '30%', minWidth: 0 }}>
         {state.currentTrack ? (
           <>
@@ -47,176 +145,113 @@ export function PlayerBar() {
               style={{ width: '56px', height: '56px', borderRadius: '4px', objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }}
               whileHover={{ scale: 1.02 }}
             />
-            <div className="min-w-0">
+            <div style={{ minWidth: 0 }}>
               <p
-                style={{ fontSize: '13px', fontWeight: 500, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}
+                onClick={openNowPlaying}
+                style={{
+                  fontSize: '13px', fontWeight: 500, color: 'white',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: '140px', cursor: 'pointer',
+                  transition: 'text-decoration 0.1s',
+                }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.textDecoration = 'underline')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.textDecoration = 'none')}
               >
                 {state.currentTrack.title}
               </p>
-              <p style={{ fontSize: '11px', color: 'var(--sp-text-secondary)', marginTop: '2px' }}>
+              <p style={{ fontSize: '11px', color: '#b3b3b3', marginTop: '2px' }}>
                 {state.currentTrack.artist}
               </p>
             </div>
             <motion.button
               onClick={() => setIsFavorite(f => !f)}
               whileTap={{ scale: 0.85 }}
-              style={{ color: isFavorite ? 'var(--sp-green)' : 'var(--sp-text-secondary)', flexShrink: 0, marginLeft: '4px' }}
+              style={{ color: isFavorite ? '#1db954' : '#b3b3b3', flexShrink: 0, marginLeft: '4px' }}
+              onMouseEnter={e => { if (!isFavorite) (e.currentTarget as HTMLElement).style.color = 'white'; }}
+              onMouseLeave={e => { if (!isFavorite) (e.currentTarget as HTMLElement).style.color = '#b3b3b3'; }}
             >
               <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={1.5} />
             </motion.button>
           </>
         ) : (
-          <div style={{ width: '56px', height: '56px', borderRadius: '4px', backgroundColor: 'var(--sp-bg-highlight)' }} />
+          <div style={{ width: '56px', height: '56px', borderRadius: '4px', backgroundColor: '#282828' }} />
         )}
       </div>
 
-      {/* CENTER — controls + progress */}
+      {/* CENTER — controls + progress (40%) */}
       <div className="flex flex-col items-center gap-2" style={{ flex: 1 }}>
-        {/* Control buttons */}
-        <div className="flex items-center gap-4">
-          <button style={{ color: 'var(--sp-text-secondary)' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
-          >
-            <Shuffle size={16} strokeWidth={1.5} />
-          </button>
+        {/* Buttons */}
+        <div className="flex items-center gap-5">
+          <CtrlBtn><Shuffle size={16} strokeWidth={1.5} /></CtrlBtn>
 
           <motion.button
             onClick={previousTrack}
             whileTap={{ scale: 0.9 }}
-            style={{ color: 'var(--sp-text-secondary)' }}
+            style={{ color: '#b3b3b3', lineHeight: 0 }}
             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#b3b3b3')}
           >
-            <SkipBack size={18} strokeWidth={1.5} fill="currentColor" />
+            <SkipBack size={18} fill="currentColor" strokeWidth={0} />
           </motion.button>
 
-          {/* Main play button */}
           <motion.button
             onClick={togglePlay}
             whileTap={{ scale: 0.94 }}
             className="flex items-center justify-center rounded-full"
             style={{
               width: '32px', height: '32px',
-              backgroundColor: state.currentTrack ? 'white' : 'rgba(255,255,255,0.4)',
-              color: 'black',
+              backgroundColor: state.currentTrack ? 'white' : 'rgba(255,255,255,0.3)',
+              flexShrink: 0,
             }}
           >
             {state.isPlaying
-              ? <Pause size={14} fill="currentColor" strokeWidth={0} />
-              : <Play size={14} fill="currentColor" strokeWidth={0} style={{ marginLeft: '2px' }} />}
+              ? <Pause size={14} fill="black" strokeWidth={0} />
+              : <Play size={14} fill="black" strokeWidth={0} style={{ marginLeft: '2px' }} />}
           </motion.button>
 
           <motion.button
             onClick={nextTrack}
             whileTap={{ scale: 0.9 }}
-            style={{ color: 'var(--sp-text-secondary)' }}
+            style={{ color: '#b3b3b3', lineHeight: 0 }}
             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#b3b3b3')}
           >
-            <SkipForward size={18} strokeWidth={1.5} fill="currentColor" />
+            <SkipForward size={18} fill="currentColor" strokeWidth={0} />
           </motion.button>
 
-          <button style={{ color: 'var(--sp-text-secondary)' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
-          >
-            <Repeat size={16} strokeWidth={1.5} />
-          </button>
+          <CtrlBtn><Repeat size={16} strokeWidth={1.5} /></CtrlBtn>
         </div>
 
-        {/* Progress bar */}
-        <div className="flex items-center gap-2 w-full" style={{ maxWidth: '500px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--sp-text-secondary)', minWidth: '30px', textAlign: 'right' }}>
+        {/* Progress */}
+        <div className="flex items-center gap-2" style={{ width: '100%', maxWidth: '520px' }}>
+          <span style={{ fontSize: '11px', color: '#b3b3b3', minWidth: '32px', textAlign: 'right' }}>
             {formatTime(state.currentTime)}
           </span>
-
-          {/* Track */}
-          <div
-            ref={progressRef}
-            onClick={handleProgressClick}
-            className="flex-1 relative flex items-center cursor-pointer group"
-            style={{ height: '16px' }}
-          >
-            <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
-            <div
-              className="absolute rounded-full"
-              style={{
-                height: '4px',
-                width: `${progressPercent}%`,
-                backgroundColor: 'white',
-                transition: 'width 0.1s linear',
-              }}
-            />
-            {/* Thumb appears on hover via CSS group */}
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: '12px', height: '12px',
-                left: `${progressPercent}%`,
-                transform: 'translateX(-50%)',
-                backgroundColor: 'white',
-                opacity: 0,
-                transition: 'opacity 0.15s',
-              }}
-              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
-            />
-          </div>
-
-          <span style={{ fontSize: '11px', color: 'var(--sp-text-secondary)', minWidth: '30px' }}>
+          <ProgressBar value={state.currentTime} max={duration} onChange={seek} />
+          <span style={{ fontSize: '11px', color: '#b3b3b3', minWidth: '32px' }}>
             {formatTime(duration)}
           </span>
         </div>
       </div>
 
-      {/* RIGHT — volume + extras */}
+      {/* RIGHT — volume (30%) */}
       <div className="flex items-center justify-end gap-3" style={{ width: '30%' }}>
-        <button style={{ color: 'var(--sp-text-secondary)' }}
-          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
-        >
-          <ListMusic size={16} strokeWidth={1.5} />
-        </button>
+        <CtrlBtn><ListMusic size={16} strokeWidth={1.5} /></CtrlBtn>
 
-        <button
-          onClick={toggleMute}
-          style={{ color: 'var(--sp-text-secondary)' }}
-          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
-        >
+        <CtrlBtn onClick={toggleMute}>
           {state.isMuted || state.volume === 0
             ? <VolumeX size={16} strokeWidth={1.5} />
             : <Volume2 size={16} strokeWidth={1.5} />}
-        </button>
+        </CtrlBtn>
 
-        {/* Volume slider */}
-        <div
-          className="relative flex items-center cursor-pointer"
-          style={{ width: '90px', height: '16px' }}
-          onClick={e => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setVolume(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
-          }}
-        >
-          <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          <div
-            className="absolute rounded-full"
-            style={{
-              height: '4px',
-              width: `${(state.isMuted ? 0 : state.volume) * 100}%`,
-              backgroundColor: 'white',
-            }}
-          />
-        </div>
+        <VolumeBar
+          value={state.isMuted ? 0 : state.volume}
+          onChange={setVolume}
+        />
 
-        <button
-          onClick={openNowPlaying}
-          style={{ color: 'var(--sp-text-secondary)' }}
-          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--sp-text-secondary)')}
-        >
+        <CtrlBtn onClick={openNowPlaying}>
           <Maximize2 size={14} strokeWidth={1.5} />
-        </button>
+        </CtrlBtn>
       </div>
     </div>
   );
