@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+:root {
+  /* Spotify-exact colors */
+  --sp-bg: #121212;
+  --sp-bg-elevated: #1a1a1a;
+  --sp-bg-highlight: #242424;
+  --sp-bg-press: #000;
+  --sp-sidebar: #121212;
+  --sp-player: #181818;
+  --sp-green: #1db954;
+  --sp-green-hover: #1ed760;
+  --sp-white: #fff;
+  --sp-text-primary: #fff;
+  --sp-text-secondary: #b3b3b3;
+  --sp-text-subdued: #6a6a6a;
+  --sp-border: rgba(255,255,255,0.1);
+  --sp-border-subtle: rgba(255,255,255,0.06);
+
+  /* Dynamic accent (from album art) */
+  --color-accent: #1db954;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+
+body {
+  background-color: var(--sp-bg);
+  color: var(--sp-text-primary);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; padding: 0; }
+
+/* Custom scrollbar — Spotify-style */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+
+@layer components {
+  .font-mono { font-family: 'DM Mono', monospace; }
+
+  /* Spotify hover row */
+  .sp-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .sp-row:hover { background: rgba(255,255,255,0.07); }
+  .sp-row.active { background: rgba(255,255,255,0.1); }
+
+  /* Green play button */
+  .sp-play-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--sp-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, background 0.1s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .sp-play-btn:hover {
+    background: var(--sp-green-hover);
+    transform: scale(1.04);
+  }
+
+  /* Small play button */
+  .sp-play-btn-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--sp-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, opacity 0.15s;
+    opacity: 0;
+  }
+
+  /* Slider */
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.3);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  input[type=range]:hover::-webkit-slider-thumb { opacity: 1; }
+  input[type=range]::-webkit-slider-runnable-track { border-radius: 2px; }
+}
