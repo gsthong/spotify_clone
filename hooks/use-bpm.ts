@@ -43,7 +43,7 @@ export function useBPM() {
     const detectPeak = () => {
       const analyser = analyserRef.current!;
       const dataArray = dataArrayRef.current!;
-      analyser.getByteFrequencyData(dataArray);
+      analyser.getByteFrequencyData(dataArray as any);
 
       // Focus on bass frequencies (bins 1-10)
       let energy = 0;

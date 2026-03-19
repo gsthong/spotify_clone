@@ -3,13 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Library, BarChart2 } from 'lucide-react';
+import { Home, Search, Library, BarChart2, Settings } from 'lucide-react';
 
 const TABS = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Search', href: '/search', icon: Search },
   { label: 'Library', href: '/queue', icon: Library },
   { label: 'Stats', href: '/stats', icon: BarChart2 },
+  { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function MobileTabBar() {

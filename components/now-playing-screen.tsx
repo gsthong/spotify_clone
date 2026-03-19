@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/lib/audio-context';
 import { useNowPlaying } from '@/lib/now-playing-context';
 import { formatTime } from '@/lib/utils';
+import { useBPM } from '@/hooks/use-bpm';
+import { LyricsView } from '@/components/lyrics-view';
+import { ArtistPanel } from '@/components/artist-panel';
+import { ShareSheet } from '@/components/share-sheet';
 import {
   ChevronDown, MoreHorizontal,
   Play, Pause, SkipBack, SkipForward,
@@ -17,8 +21,27 @@ export function NowPlayingScreen() {
   const progressRef = useRef<HTMLDivElement>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [albumKey, setAlbumKey] = useState(0);
+  const [showFullLyrics, setShowFullLyrics] = useState(false);
+  const [showArtistPanel, setShowArtistPanel] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
-  useEffect(() => { setAlbumKey(k => k + 1); }, [state.currentTrack?.id]);
+  const { bpm, confidence } = useBPM();
+
+  useEffect(() => { 
+    setAlbumKey(k => k + 1); 
+    setShowFullLyrics(false);
+  }, [state.currentTrack?.id]);
+
+  // Bass shake effect listener
+  useEffect(() => {
+    const handleBeat = () => {
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 80);
+    };
+    window.addEventListener('vibe-beat', handleBeat);
+    return () => window.removeEventListener('vibe-beat', handleBeat);
+  }, []);
 
   const duration = state.currentTrack?.duration ?? 0;
   const progressPercent = duration > 0 ? Math.min(100, (state.currentTime / duration) * 100) : 0;
@@ -46,7 +69,7 @@ export function NowPlayingScreen() {
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-          drag="y"
+          drag={showFullLyrics ? false : "y"}
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
@@ -78,10 +101,14 @@ export function NowPlayingScreen() {
                 <ChevronDown size={28} color="white" />
               </motion.button>
               <div className="text-center">
-                <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Playing from
+                <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                  Playing from library
                 </p>
-                <p style={{ fontSize: '12px', fontWeight: 800, color: 'white', textTransform: 'uppercase' }}>Your Library</p>
+                {bpm && (
+                  <p style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.4)', fontFamily: 'DM Mono, monospace' }}>
+                    {bpm} BPM
+                  </p>
+                )}
               </div>
               <button>
                 <MoreHorizontal size={24} color="white" />
@@ -92,7 +119,7 @@ export function NowPlayingScreen() {
             <motion.div
               layoutId="mobile-album-art"
               key={albumKey}
-              className="flex justify-center mb-10 mt-4"
+              className={`flex justify-center mb-10 mt-4 ${isShaking ? 'bass-shake' : ''}`}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
@@ -112,12 +139,15 @@ export function NowPlayingScreen() {
             </motion.div>
 
             {/* Track info + heart */}
-            <div className="flex items-center justify-between mb-8 px-1">
+            <div className="flex items-center justify-between mb-6 px-1">
               <div className="min-w-0 flex-1">
                 <p style={{ fontSize: '24px', fontWeight: 900, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {state.currentTrack.title}
                 </p>
-                <p style={{ fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>
+                <p 
+                  onClick={() => setShowArtistPanel(true)}
+                  style={{ fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: '2px', cursor: 'pointer' }}
+                >
                   {state.currentTrack.artist}
                 </p>
               </div>
@@ -131,7 +161,7 @@ export function NowPlayingScreen() {
             </div>
 
             {/* Progress */}
-            <div className="mb-6 px-1">
+            <div className="mb-4 px-1">
               <div
                 ref={progressRef}
                 onClick={handleProgressClick}
@@ -160,9 +190,9 @@ export function NowPlayingScreen() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-between mb-10 px-1">
+            <div className="flex items-center justify-between mb-6 px-1">
               <button style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <Shuffle size={22} strokeWidth={2} />
+                <Shuffle size={20} strokeWidth={2} />
               </button>
               <motion.button onClick={previousTrack} whileTap={{ scale: 0.9 }} style={{ color: 'white' }}>
                 <SkipBack size={32} fill="white" strokeWidth={0} />
@@ -181,16 +211,16 @@ export function NowPlayingScreen() {
                 <SkipForward size={32} fill="white" strokeWidth={0} />
               </motion.button>
               <button style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <Repeat size={22} strokeWidth={2} />
+                <Repeat size={20} strokeWidth={2} />
               </button>
             </div>
 
             {/* Volume */}
-            <div className="flex items-center gap-3 px-1 mb-8">
+            <div className="flex items-center gap-3 px-1 mb-6">
               <button onClick={toggleMute} style={{ color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>
                 {state.isMuted || state.volume === 0
-                  ? <VolumeX size={18} strokeWidth={1.5} />
-                  : <Volume2 size={18} strokeWidth={1.5} />}
+                  ? <VolumeX size={16} strokeWidth={1.5} />
+                  : <Volume2 size={16} strokeWidth={1.5} />}
               </button>
               <div
                 className="flex-1 relative flex items-center cursor-pointer"
@@ -208,15 +238,63 @@ export function NowPlayingScreen() {
               </div>
             </div>
 
+            {/* Lyrics View - Inline */}
+            <div className="mb-6">
+              <LyricsView mode="inline" onClose={() => setShowFullLyrics(true)} />
+            </div>
+
             {/* Action Row */}
             <div className="flex items-center justify-between px-1">
-              <button style={{ color: 'rgba(255,255,255,0.7)' }}>
+              <button 
+                onClick={() => setShowShareSheet(true)}
+                style={{ color: 'rgba(255,255,255,0.7)' }}
+              >
                 <Share2 size={20} />
               </button>
               <button style={{ color: 'rgba(255,255,255,0.7)' }}>
                 <MoreHorizontal size={20} />
               </button>
             </div>
+
+            {/* Fullscreen Lyrics Overlay */}
+            <AnimatePresence>
+              {showFullLyrics && (
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 40 }}
+                  className="fixed inset-0 z-[60]"
+                >
+                  <LyricsView mode="fullscreen" onClose={() => setShowFullLyrics(false)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Artist Panel */}
+            <ArtistPanel 
+              artistName={state.currentTrack.artist}
+              isOpen={showArtistPanel}
+              onClose={() => setShowArtistPanel(false)}
+            />
+
+            {/* Share Sheet */}
+            <ShareSheet
+              track={state.currentTrack}
+              currentTime={state.currentTime}
+              isOpen={showShareSheet}
+              onClose={() => setShowShareSheet(false)}
+            />
+
+            <style>{`
+              .bass-shake {
+                animation: shake 80ms ease-in-out;
+              }
+              @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-2px); }
+                75% { transform: translateX(2px); }
+              }
+            `}</style>
           </div>
         </motion.div>
       )}

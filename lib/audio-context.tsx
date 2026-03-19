@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { AudioState, Track } from './types';
+import { useScrobble } from '@/hooks/use-scrobble';
 
 const PROXY_URL = process.env.NEXT_PUBLIC_PROXY_URL || 'http://localhost:3001';
 const CLIENT_CACHE_TTL_MS = 25 * 60 * 1000;
@@ -32,6 +33,7 @@ interface AudioContextType {
   addToQueue: (track: Track) => void;
   removeFromQueue: (index: number) => void;
   setAccentColor: (color: string) => void;
+  audioRef: React.RefObject<HTMLAudioElement | null>;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -62,10 +64,25 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const queueIndexRef = useRef(0);
   const isPlayingRef = useRef(false);
   const streamCacheRef = useRef<Map<string, StreamCacheEntry>>(new Map());
+  const scrobbleTrackIdRef = useRef<string | null>(null); // Track ID currently being scrobbled
+
+  const { scrobble } = useScrobble();
 
   useEffect(() => { queueRef.current = state.queue; }, [state.queue]);
   useEffect(() => { queueIndexRef.current = state.currentQueueIndex; }, [state.currentQueueIndex]);
   useEffect(() => { isPlayingRef.current = state.isPlaying; }, [state.isPlaying]);
+
+  // Scrobble watcher
+  useEffect(() => {
+    const track = state.currentTrack;
+    if (!track || !state.isPlaying) return;
+
+    const threshold = Math.min(track.duration * 0.5, 240);
+    if (state.currentTime >= threshold && scrobbleTrackIdRef.current !== track.id) {
+      scrobbleTrackIdRef.current = track.id;
+      scrobble(track.artist, track.title);
+    }
+  }, [state.currentTime, state.currentTrack, state.isPlaying, scrobble]);
 
   // ─── Stream URL resolver with client-side cache ──────────────
   const resolveStreamUrl = useCallback(async (youtubeId: string): Promise<string> => {
@@ -336,6 +353,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     <AudioContext.Provider value={{
       state, play, pause, togglePlay, seek, setVolume, toggleMute,
       nextTrack, previousTrack, setQueue, addToQueue, removeFromQueue, setAccentColor,
+      audioRef,
     }}>
       {children}
     </AudioContext.Provider>

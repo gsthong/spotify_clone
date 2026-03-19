@@ -6,6 +6,7 @@ import { PlayerBar } from './player-bar';
 import { NowPlayingScreen } from './now-playing-screen';
 import { MobileTabBar } from './mobile-tab-bar';
 import { MobileMiniPlayer } from './mobile-mini-player';
+import { VibeToast } from './vibe-toast';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -78,14 +79,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
 
-            <div style={{ flex: 1, overflow: 'hidden' }}>
+            <main className="flex-1 overflow-y-auto scroll-hide">
               {children}
-            </div>
+            </main>
+            <VibeToast />
           </div>
         </div>
 
         <PlayerBar />
+
+        {/* Overlay Screens */}
         <NowPlayingScreen />
+        <VibeToast />
       </div>
 
       {/* ── MOBILE (below md) ──────────────────────────────────── */}
