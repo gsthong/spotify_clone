@@ -138,6 +138,31 @@ app.get('/search', async (req, res) => {
   }
 });
 
+// Lyrics endpoint (proxy to LRCLIB)
+app.get('/lyrics', async (req, res) => {
+  const { artist, title, duration } = req.query;
+  if (!artist || !title) {
+    return res.status(400).json({ error: 'artist and title are required' });
+  }
+
+  try {
+    const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}${duration ? `&duration=${duration}` : ''}`;
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'VibeMusic/1.0 (https://github.com/gsthong/spotify_clone)' }
+    });
+    
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch lyrics' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Lyrics error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[vibe-proxy] Server running on port ${PORT}`);
 });

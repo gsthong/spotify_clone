@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useAudio } from '@/lib/audio-context';
 import { MOCK_TRACKS } from '@/lib/mock-data';
 import { Play, Clock } from 'lucide-react';
-import { TrackRow } from '@/components/track-row';
+import { TrackRow } from '../components/track-row';
 
 export default function HomePage() {
   const { state, play, setQueue } = useAudio();
