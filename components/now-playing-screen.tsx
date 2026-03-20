@@ -11,11 +11,11 @@ import { ShareSheet } from '@/components/share-sheet';
 import {
   ChevronDown, MoreHorizontal,
   Play, Pause, SkipBack, SkipForward,
-  Shuffle, Repeat, Volume2, VolumeX, Heart, Share2,
+  Shuffle, Repeat, Volume2, VolumeX, Heart, Share2, Radio,
 } from 'lucide-react';
 
 export function NowPlayingScreen() {
-  const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute } = useAudio();
+  const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio } = useAudio();
   const { showNowPlaying, closeNowPlaying } = useNowPlaying();
   const progressRef = useRef<HTMLDivElement>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -195,6 +195,13 @@ export function NowPlayingScreen() {
               <button style={{ color: 'rgba(255,255,255,0.6)' }}>
                 <Repeat size={20} strokeWidth={2} />
               </button>
+              <motion.button 
+                onClick={toggleRadio}
+                whileTap={{ scale: 0.9 }}
+                style={{ color: state.radioMode ? 'var(--sp-green)' : 'rgba(255,255,255,0.6)' }}
+              >
+                <Radio size={20} strokeWidth={2} />
+              </motion.button>
             </div>
 
             {/* Volume */}

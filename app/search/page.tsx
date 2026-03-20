@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/lib/audio-context';
 import { useYouTubeSearch } from '@/hooks/use-youtube-search';
+import { db } from '@/lib/db';
 import { MOCK_TRACKS } from '@/lib/mock-data';
 import { Track } from '@/lib/types';
 import { Search as SearchIcon, Loader2 } from 'lucide-react';
@@ -18,6 +19,13 @@ const BROWSE_CATEGORIES = [
 
 const MOOD_FILTERS = ['all', 'suy', 'overdose', 'hype', 'chill'] as const;
 type MoodFilter = typeof MOOD_FILTERS[number];
+
+const DURATION_FILTERS = [
+  { label: 'Any', min: 0, max: Infinity },
+  { label: '< 3m', min: 0, max: 180 },
+  { label: '3m - 5m', min: 180, max: 300 },
+  { label: '> 5m', min: 300, max: Infinity },
+];
 
 function TrackSkeleton() {
   return (
@@ -81,6 +89,9 @@ export default function SearchPage() {
   const [results, setResults] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeMood, setActiveMood] = useState<MoodFilter>('all');
+  const [durationFilter, setDurationFilter] = useState(DURATION_FILTERS[0]);
+  const [searchLibrary, setSearchLibrary] = useState(false);
+  const [libraryResults, setLibraryResults] = useState<Track[]>([]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -102,6 +113,14 @@ export default function SearchPage() {
       debounceRef.current = setTimeout(async () => {
         const tracks = await search(val.trim());
         setResults(tracks);
+        
+        // Search local DB too
+        const local = await db.tracks
+          .where('title').startsWithIgnoreCase(val.trim())
+          .or('artist').startsWithIgnoreCase(val.trim())
+          .toArray();
+        setLibraryResults(local);
+        
         setIsLoading(false);
       }, 400);
     },
@@ -114,10 +133,13 @@ export default function SearchPage() {
     };
   }, []);
 
-  const filteredResults =
-    activeMood === 'all'
-      ? results
-      : results.filter(t => t.mood === activeMood);
+  const baseResults = searchLibrary ? libraryResults : results;
+
+  const filteredResults = baseResults.filter(t => {
+    const moodMatch = activeMood === 'all' || t.mood === activeMood;
+    const durMatch = t.duration >= durationFilter.min && t.duration <= durationFilter.max;
+    return moodMatch && durMatch;
+  });
 
   const handleTrackClick = useCallback(
     (track: Track, index: number) => {
@@ -199,6 +221,42 @@ export default function SearchPage() {
                   {mood}
                 </button>
               ))}
+
+              <div style={{ width: '1px', height: '20px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+
+              {DURATION_FILTERS.map(f => (
+                <button
+                  key={f.label}
+                  onClick={() => setDurationFilter(f)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '500px',
+                    backgroundColor: durationFilter.label === f.label ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    color: durationFilter.label === f.label ? 'white' : 'var(--sp-text-secondary)',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.1s',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setSearchLibrary(!searchLibrary)}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '4px 12px',
+                  borderRadius: '500px',
+                  backgroundColor: searchLibrary ? 'var(--sp-green)' : 'rgba(255,255,255,0.05)',
+                  color: searchLibrary ? 'black' : 'white',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                }}
+              >
+                {searchLibrary ? 'Searching Library' : 'Searching YouTube'}
+              </button>
             </div>
 
             <h2

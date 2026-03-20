@@ -3,9 +3,11 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Music, LogOut, Trash2, Globe, Heart, ChevronRight, Settings as SettingsIcon } from 'lucide-react';
+import { Music, LogOut, Trash2, Globe, Heart, ChevronRight, Settings as SettingsIcon, Download, Upload } from 'lucide-react';
 import { useScrobble } from '@/hooks/use-scrobble';
 import { db } from '@/lib/db';
+import { SpotifyImport } from '@/components/spotify-import';
+import { exportLibrary, importLibrary, downloadFile } from '@/lib/backup';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -69,6 +71,12 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Spotify Import */}
+          <section>
+            <h3 className="text-white/40 text-[11px] font-black uppercase tracking-widest mb-4">Discovery</h3>
+            <SpotifyImport />
+          </section>
+
           {/* Storage */}
           <section>
              <h3 className="text-white/40 text-[11px] font-black uppercase tracking-widest mb-4">Storage & Privacy</h3>
@@ -85,6 +93,43 @@ export default function SettingsPage() {
                   </div>
                   <ChevronRight size={18} className="text-white/20" />
                 </button>
+
+                <div className="border-t border-white/5 flex">
+                  <button 
+                    onClick={async () => {
+                      const data = await exportLibrary();
+                      downloadFile(data, `vibe-backup-${Date.now()}.json`, 'application/json');
+                    }}
+                    className="flex-1 p-6 flex items-center justify-between hover:bg-white/5 transition-colors border-r border-white/5"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white/60">
+                        <Download size={20} />
+                      </div>
+                      <p className="text-white font-bold">Export</p>
+                    </div>
+                  </button>
+                  <label className="flex-1 p-6 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer">
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept=".json" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const text = await file.text();
+                        const res = await importLibrary(text);
+                        if (res.success) window.dispatchEvent(new CustomEvent('vibe-toast', { detail: `Imported ${res.count} tracks!` }));
+                      }} 
+                    />
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white/60">
+                        <Upload size={20} />
+                      </div>
+                      <p className="text-white font-bold">Import</p>
+                    </div>
+                  </label>
+                </div>
              </div>
           </section>
 

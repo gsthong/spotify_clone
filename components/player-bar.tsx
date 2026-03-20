@@ -8,8 +8,9 @@ import { formatTime } from '@/lib/utils';
 import {
   Play, Pause, SkipBack, SkipForward,
   Shuffle, Repeat, Volume2, VolumeX,
-  Heart, Maximize2, ListMusic,
+  Heart, Maximize2, ListMusic, Radio,
 } from 'lucide-react';
+import { MoodShuffleBar } from './mood-shuffle-bar';
 
 function ProgressBar({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -118,7 +119,7 @@ function CtrlBtn({ children, onClick, active }: any) {
 }
 
 export function PlayerBar() {
-  const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute } = useAudio();
+  const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio, smartShuffle } = useAudio();
   const { openNowPlaying } = useNowPlaying();
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -180,9 +181,16 @@ export function PlayerBar() {
 
       {/* CENTER — controls + progress (40%) */}
       <div className="flex flex-col items-center gap-2" style={{ flex: 1 }}>
-        {/* Buttons */}
-        <div className="flex items-center gap-5">
-          <CtrlBtn><Shuffle size={16} strokeWidth={1.5} /></CtrlBtn>
+        <div className="flex items-center gap-4 w-full justify-center">
+          <MoodShuffleBar />
+          {/* Buttons */}
+          <div className="flex items-center gap-5">
+            <CtrlBtn
+              onClick={() => smartShuffle(null)}
+              active={state.shuffleMood === null && state.queue.length > 0}
+            >
+              <Shuffle size={16} strokeWidth={1.5} />
+            </CtrlBtn>
 
           <motion.button
             onClick={previousTrack}
@@ -220,7 +228,15 @@ export function PlayerBar() {
           </motion.button>
 
           <CtrlBtn><Repeat size={16} strokeWidth={1.5} /></CtrlBtn>
+          <CtrlBtn 
+            onClick={toggleRadio} 
+            active={state.radioMode}
+            title="Radio Mode"
+          >
+            <Radio size={16} strokeWidth={1.5} />
+          </CtrlBtn>
         </div>
+      </div>
 
         {/* Progress */}
         <div className="flex items-center gap-2" style={{ width: '100%', maxWidth: '520px' }}>

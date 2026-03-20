@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAudio } from '@/lib/audio-context';
 import { MOCK_TRACKS } from '@/lib/mock-data';
-import { Home, Search, Library, Plus, Heart } from 'lucide-react';
+import { Home, Search, Library, Plus, Heart, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function Sidebar() {
@@ -27,6 +27,7 @@ export function Sidebar() {
         {[
           { icon: Home, label: 'Home', href: '/' },
           { icon: Search, label: 'Search', href: '/search' },
+          { icon: Clock, label: 'History', href: '/history' },
         ].map(({ icon: Icon, label, href }) => {
           const active = pathname === href;
           return (
