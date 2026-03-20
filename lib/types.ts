@@ -1,3 +1,5 @@
+export type Mood = 'suy' | 'hype' | 'overdose' | 'chill' | null;
+
 export interface Track {
   id: string;
   title: string;
@@ -6,7 +8,7 @@ export interface Track {
   duration: number;
   url: string;
   albumArt: string;
-  mood: 'suy' | 'overdose' | 'hype' | 'chill';
+  mood?: Mood;
   plays: number;
   lyrics?: string;
 }
@@ -27,6 +29,8 @@ export interface AudioState {
   volume: number;
   isMuted: boolean;
   accentColor: string;
+  radioMode?: boolean;
+  shuffleMood?: Mood;
 }
 
 export interface ColorPalette {
