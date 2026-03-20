@@ -22,9 +22,6 @@ export function Sidebar() {
           <span style={{ fontSize: '24px', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
             vibe
           </span>
-          <span style={{ fontSize: '24px', fontWeight: 900, color: '#1db954', letterSpacing: '-0.5px' }}>
-            music
-          </span>
         </div>
 
         {[

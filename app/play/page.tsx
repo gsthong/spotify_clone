@@ -50,7 +50,7 @@ function PlayHandler() {
     <div className="flex flex-col items-center justify-center h-screen bg-[#121212] text-white">
       <Loader2 className="w-10 h-10 text-[var(--sp-green)] animate-spin mb-4" />
       <p className="text-lg font-bold">Syncing your music...</p>
-      <p className="text-sm text-white/50 mt-2">Vibe Music Cross-Platform Sync</p>
+      <p className="text-sm text-white/50 mt-2">Vibe Sync</p>
     </div>
   );
 }

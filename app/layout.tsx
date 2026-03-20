@@ -5,7 +5,7 @@ import { AppShellWrapper } from '@/components/app-shell-wrapper'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'VIBE MUSIC',
+  title: 'Vibe',
   description: 'Personal music player',
 }
 

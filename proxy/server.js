@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// VIBE MUSIC — Railway Proxy Server
+// Vibe — Railway Proxy Server
 // Deploy to Railway:
 //   1. Push this folder (proxy/) to a GitHub repo
 //   2. New Railway project → Deploy from GitHub → select repo
@@ -148,7 +148,7 @@ app.get('/lyrics', async (req, res) => {
   try {
     const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}${duration ? `&duration=${duration}` : ''}`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'VibeMusic/1.0 (https://github.com/gsthong/spotify_clone)' }
+      headers: { 'User-Agent': 'Vibe/1.0 (https://github.com/gsthong/spotify_clone)' }
     });
     
     if (!response.ok) {
@@ -164,5 +164,5 @@ app.get('/lyrics', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[vibe-proxy] Server running on port ${PORT}`);
+  console.log(`[proxy] Server running on port ${PORT}`);
 });

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/lib/audio-context';
 import { useNowPlaying } from '@/lib/now-playing-context';
 import { formatTime } from '@/lib/utils';
-import { useBPM } from '@/hooks/use-bpm';
 import { LyricsView } from '@/components/lyrics-view';
 import { ArtistPanel } from '@/components/artist-panel';
 import { ShareSheet } from '@/components/share-sheet';
@@ -24,24 +23,12 @@ export function NowPlayingScreen() {
   const [showFullLyrics, setShowFullLyrics] = useState(false);
   const [showArtistPanel, setShowArtistPanel] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
-
-  const { bpm, confidence } = useBPM();
 
   useEffect(() => { 
     setAlbumKey(k => k + 1); 
     setShowFullLyrics(false);
   }, [state.currentTrack?.id]);
 
-  // Bass shake effect listener
-  useEffect(() => {
-    const handleBeat = () => {
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 80);
-    };
-    window.addEventListener('vibe-beat', handleBeat);
-    return () => window.removeEventListener('vibe-beat', handleBeat);
-  }, []);
 
   const duration = state.currentTrack?.duration ?? 0;
   const progressPercent = duration > 0 ? Math.min(100, (state.currentTime / duration) * 100) : 0;
@@ -100,15 +87,10 @@ export function NowPlayingScreen() {
               <motion.button onClick={closeNowPlaying} whileTap={{ scale: 0.9 }}>
                 <ChevronDown size={28} color="white" />
               </motion.button>
-              <div className="text-center">
+               <div className="text-center">
                 <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                  Playing from library
+                  Playing from Library
                 </p>
-                {bpm && (
-                  <p style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.4)', fontFamily: 'DM Mono, monospace' }}>
-                    {bpm} BPM
-                  </p>
-                )}
               </div>
               <button>
                 <MoreHorizontal size={24} color="white" />
@@ -119,7 +101,7 @@ export function NowPlayingScreen() {
             <motion.div
               layoutId="mobile-album-art"
               key={albumKey}
-              className={`flex justify-center mb-10 mt-4 ${isShaking ? 'bass-shake' : ''}`}
+              className="flex justify-center mb-10 mt-4"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
@@ -285,16 +267,6 @@ export function NowPlayingScreen() {
               onClose={() => setShowShareSheet(false)}
             />
 
-            <style>{`
-              .bass-shake {
-                animation: shake 80ms ease-in-out;
-              }
-              @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-2px); }
-                75% { transform: translateX(2px); }
-              }
-            `}</style>
           </div>
         </motion.div>
       )}

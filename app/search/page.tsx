@@ -9,10 +9,10 @@ import { Track } from '@/lib/types';
 import { Search as SearchIcon, Loader2 } from 'lucide-react';
 
 const BROWSE_CATEGORIES = [
-  { label: 'Suy 🌧', color: '#4a1a7a', mood: 'suy' as const },
-  { label: 'Overdose ⚡', color: '#b33000', mood: 'overdose' as const },
-  { label: 'Hype 🔥', color: '#006450', mood: 'hype' as const },
-  { label: 'Chill 🌿', color: '#0d73ec', mood: 'chill' as const },
+  { label: 'Suy', color: '#4a1a7a', mood: 'suy' as const },
+  { label: 'Overdose', color: '#b33000', mood: 'overdose' as const },
+  { label: 'Hype', color: '#006450', mood: 'hype' as const },
+  { label: 'Chill', color: '#0d73ec', mood: 'chill' as const },
   { label: 'All tracks', color: '#503750', mood: null },
 ];
 

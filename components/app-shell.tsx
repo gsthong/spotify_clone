@@ -62,21 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              <Link href="/stats">
-                <div
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '6px 16px', borderRadius: '500px',
-                    backgroundColor: pathname === '/stats' ? 'white' : 'rgba(0,0,0,0.6)',
-                    color: pathname === '/stats' ? '#121212' : 'white',
-                    fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <BarChart2 size={15} />
-                  Stats
-                </div>
-              </Link>
+              <div className="w-8" />
             </div>
 
             <main className="flex-1 overflow-y-auto scroll-hide">

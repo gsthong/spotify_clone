@@ -92,16 +92,8 @@ export default function SettingsPage() {
           <section>
             <h3 className="text-white/40 text-[11px] font-black uppercase tracking-widest mb-4">About</h3>
             <div className="bg-white/5 rounded-2xl p-8 text-center border border-white/5">
-              <h4 className="text-white font-black text-xl mb-2">Vibe Music</h4>
-              <p className="text-white/40 text-sm mb-6">Phase 2 — Enhanced Musical Intelligence</p>
-              <div className="flex items-center justify-center gap-4">
-                <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-colors">
-                  <Globe size={18} />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-colors border-2 border-[var(--sp-green)]">
-                  <Heart size={18} className="text-[var(--sp-green)]" />
-                </a>
-              </div>
+              <h4 className="text-white font-black text-xl mb-6">Vibe</h4>
+              <p className="text-white/40 text-xs italic">Minimal Music Player</p>
             </div>
           </section>
         </div>

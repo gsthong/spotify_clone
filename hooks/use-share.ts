@@ -8,7 +8,7 @@ export function useShare() {
   const shareTrack = useCallback(async (track: Track, currentTime: number) => {
     const url = `${window.location.origin}/play?id=${track.id}&t=${Math.floor(currentTime)}`;
     const title = `${track.title} — ${track.artist}`;
-    const text = `Nghe bài này trên Vibe Music 🎵`;
+    const text = `Listen to this on Vibe`;
 
     if (navigator.share) {
       try {

@@ -122,7 +122,7 @@ export function ShareSheet({ track, currentTime, isOpen, onClose }: ShareSheetPr
                       </div>
                       <div className="w-full h-px bg-white/10 my-2" />
                       <div className="flex justify-between w-full text-[10px] font-mono text-white/30 uppercase">
-                        <span>VIBE MUSIC RECIEPT</span>
+                        <span>VIBE RECIEPT</span>
                         <span>{new Date().toLocaleDateString()}</span>
                       </div>
                    </div>
