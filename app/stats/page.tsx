@@ -1,117 +1,196 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAudio } from '@/lib/audio-context';
-import { MOCK_TRACKS } from '@/lib/mock-data';
+import { db } from '@/lib/db';
+import { useWeeklyStats } from '@/hooks/use-weekly-stats';
+import { useDiscoveryScore } from '@/hooks/use-discovery-score';
+import { ListeningHeatmap } from '@/components/listening-heatmap';
+import { MoodTimelineChart } from '@/components/mood-timeline-chart';
+import { ListeningPatternChart } from '@/components/listening-pattern-chart';
+import { WeeklyWrapModal } from '@/components/weekly-wrap-modal';
+import { Flame, Compass, Calendar, BarChart3, ArrowRight, Music, Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function StatsPage() {
+  const router = useRouter();
   const { state, play, setQueue } = useAudio();
+  const { stats: weeklyStats, isLoading: weeklyLoading } = useWeeklyStats();
+  const { score: discoveryScore, label: discoveryLabel } = useDiscoveryScore();
+  const [showWeeklyWrap, setShowWeeklyWrap] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<{ date: Date; count: number }[]>([]);
+  const [moodTimeline, setMoodTimeline] = useState<{
+    labels: string[];
+    suy: number[];
+    hype: number[];
+    overdose: number[];
+    chill: number[];
+  }>({ labels: [], suy: [], hype: [], overdose: [], chill: [] });
+  const [patternData, setPatternData] = useState<number[]>([]);
 
-  const stats = useMemo(() => {
-    const totalDuration = MOCK_TRACKS.reduce((s, t) => s + t.duration, 0);
-    const moodCounts: Record<string, number> = { suy: 0, overdose: 0, hype: 0, chill: 0 };
-    MOCK_TRACKS.forEach(t => { moodCounts[t.mood]++; });
-    return {
-      totalTracks: MOCK_TRACKS.length,
-      totalMinutes: Math.floor(totalDuration / 60),
-      uniqueArtists: new Set(MOCK_TRACKS.map(t => t.artist)).size,
-      moodCounts,
+  useEffect(() => {
+    const fetchStats = async () => {
+      const logs = await db.history.toArray();
+      
+      // Heatmap
+      const dateCounts: Record<string, number> = {};
+      logs.forEach(l => {
+        const d = new Date(l.playedAt).toISOString().split('T')[0];
+        dateCounts[d] = (dateCounts[d] || 0) + 1;
+      });
+      setHeatmapData(Object.entries(dateCounts).map(([d, c]) => ({ date: new Date(d), count: c })));
+
+      // Mood Timeline (Last 8 weeks)
+      const weekLabels: string[] = [];
+      const moodSets: { suy: number[]; hype: number[]; overdose: number[]; chill: number[] } = { suy: [], hype: [], overdose: [], chill: [] };
+      for (let i = 7; i >= 0; i--) {
+        const end = Date.now() - (i * 7 * 24 * 60 * 60 * 1000);
+        const start = end - (7 * 24 * 60 * 60 * 1000);
+        const weekLogs = logs.filter(l => l.playedAt >= start && l.playedAt < end);
+        const label = new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        weekLabels.push(label);
+        
+        const trackIds = Array.from(new Set(weekLogs.map(l => l.trackId)));
+        const tracks = await db.tracks.where('id').anyOf(trackIds).toArray();
+        const tMap = new Map(tracks.map(t => [t.id, t]));
+        
+        const counts = { suy: 0, hype: 0, overdose: 0, chill: 0 };
+        weekLogs.forEach(l => {
+          const m = tMap.get(l.trackId)?.mood;
+          if (m && m in counts) counts[m as keyof typeof counts]++;
+        });
+        const total = weekLogs.length || 1;
+        moodSets.suy.push((counts.suy / total) * 100);
+        moodSets.hype.push((counts.hype / total) * 100);
+        moodSets.overdose.push((counts.overdose / total) * 100);
+        moodSets.chill.push((counts.chill / total) * 100);
+      }
+      setMoodTimeline({ labels: weekLabels, ...moodSets });
+
+      // Pattern (Time slots)
+      const slots = new Array(6).fill(0);
+      logs.forEach(l => {
+        const hour = new Date(l.playedAt).getHours();
+        if (hour >= 6 && hour < 12) slots[0]++;
+        else if (hour >= 12 && hour < 17) slots[1]++;
+        else if (hour >= 17 && hour < 21) slots[2]++;
+        else if (hour >= 21) slots[3]++; // Night 21-24
+        else if (hour >= 0 && hour < 3) slots[4]++;
+        else if (hour >= 3 && hour < 6) slots[5]++;
+      });
+      const maxSlot = Math.max(...slots) || 1;
+      setPatternData(slots.map(s => (s / maxSlot) * 100));
     };
+    fetchStats();
   }, []);
 
-  const topTracks = [...MOCK_TRACKS].sort((a, b) => b.plays - a.plays);
-  const maxPlays = topTracks[0]?.plays ?? 1;
-
-  const moods = [
-    { key: 'suy', label: 'Suy', color: '#4a1a7a' },
-    { key: 'overdose', label: 'Overdose', color: '#b33000' },
-    { key: 'hype', label: 'Hype', color: '#006450' },
-    { key: 'chill', label: 'Chill', color: '#0d73ec' },
-  ];
-
   return (
-    <div className="h-full overflow-y-auto" style={{ backgroundColor: 'var(--sp-bg)' }}>
-      {/* Header with gradient */}
-      <div style={{ background: 'linear-gradient(to bottom, #1a0a3a 0%, var(--sp-bg) 100%)', padding: '32px 24px 24px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Weekly Report
-        </p>
-        <h1 style={{ fontSize: '48px', fontWeight: 900, color: 'white', marginTop: '4px' }}>
-          🔥 12 Day Streak
-        </h1>
+    <div className="h-full overflow-y-auto px-6 py-8 custom-scrollbar">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-white mb-2">My Stats</h1>
+          <p className="text-white/40 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+            <Calendar size={14} /> Last 365 Days
+          </p>
+        </div>
+        <button 
+          onClick={() => router.push('/wrapped')}
+          className="bg-[var(--sp-green)] text-black px-6 py-2 rounded-full font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all text-sm"
+        >
+          View Yearly Wrapped
+          <ArrowRight size={16} />
+        </button>
       </div>
 
-      <div style={{ padding: '0 24px 32px' }}>
-        {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-4 mb-10">
-          {[
-            { label: 'Tracks', value: stats.totalTracks },
-            { label: 'Minutes', value: stats.totalMinutes },
-            { label: 'Artists', value: stats.uniqueArtists },
-          ].map(s => (
-            <div
-              key={s.label}
-              style={{ backgroundColor: 'var(--sp-bg-elevated)', borderRadius: '8px', padding: '24px 20px' }}
-            >
-              <p style={{ fontSize: '40px', fontWeight: 900, color: 'white' }}>{s.value}</p>
-              <p style={{ fontSize: '14px', color: 'var(--sp-text-secondary)', marginTop: '4px' }}>{s.label}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {/* Streak */}
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
+          <div className="flex items-center gap-3 mb-4">
+            <Flame className="text-orange-500" size={24} />
+            <h3 className="text-white/40 text-xs font-black uppercase tracking-widest">Listening Streak</h3>
+          </div>
+          <p className="text-5xl font-black text-white mb-1">{state.streak} <span className="text-lg font-bold text-white/40">days</span></p>
+          <p className="text-white/30 text-xs italic">Personal best: 24 days</p>
+        </div>
+
+        {/* Discovery Score */}
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/5 col-span-1 md:col-span-2 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-4">
+              <Compass className="text-blue-400" size={24} />
+              <h3 className="text-white/40 text-xs font-black uppercase tracking-widest">Discovery Score</h3>
             </div>
-          ))}
-        </div>
-
-        {/* Top tracks */}
-        <div className="mb-10">
-          <h2 style={{ fontSize: '22px', fontWeight: 900, color: 'white', marginBottom: '16px' }}>Top this week</h2>
-          {topTracks.map((track, i) => (
-            <motion.div
-              key={track.id}
-              onClick={() => { setQueue(MOCK_TRACKS, MOCK_TRACKS.indexOf(track)); play(track); }}
-              className="flex items-center gap-4 px-4 py-3 rounded-md cursor-pointer"
-              style={{ transition: 'background 0.1s' }}
-              whileHover={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
-            >
-              <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--sp-text-secondary)', minWidth: '24px' }}>{i + 1}</span>
-              <img src={track.albumArt} alt="" style={{ width: '48px', height: '48px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
-              <div className="flex-1 min-w-0">
-                <p style={{ fontSize: '15px', fontWeight: 700, color: state.currentTrack?.id === track.id ? 'var(--sp-green)' : 'white' }}>
-                  {track.title}
-                </p>
-                <p style={{ fontSize: '13px', color: 'var(--sp-text-secondary)' }}>{track.artist}</p>
-              </div>
-              <div style={{ width: '100px', flexShrink: 0 }}>
-                <div style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <motion.div
-                    style={{ height: '100%', backgroundColor: 'var(--sp-green)', borderRadius: '2px' }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(track.plays / maxPlays) * 100}%` }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: i * 0.05 }}
-                  />
-                </div>
-                <p style={{ fontSize: '11px', color: 'var(--sp-text-secondary)', marginTop: '4px', textAlign: 'right' }}>
-                  {(track.plays / 1000000).toFixed(1)}M
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Mood breakdown */}
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 900, color: 'white', marginBottom: '16px' }}>Mood breakdown</h2>
-          <div className="grid grid-cols-2 gap-4">
-            {moods.map(({ key, label, color }) => {
-              const pct = Math.round((stats.moodCounts[key] / stats.totalTracks) * 100) || 0;
-              return (
-                <div key={key} style={{ backgroundColor: color, borderRadius: '8px', padding: '20px', position: 'relative', overflow: 'hidden' }}>
-                  <p style={{ fontSize: '28px', fontWeight: 900, color: 'white' }}>{pct}%</p>
-                  <p style={{ fontSize: '14px', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>{label}</p>
-                </div>
-              );
-            })}
+            <p className="text-2xl font-black text-white mb-2">{discoveryLabel}</p>
+            <p className="text-white/40 text-xs">Based on {discoveryScore}% new discoveries this week.</p>
+          </div>
+          <div className="w-24 h-24 relative">
+             <svg className="w-full h-full" viewBox="0 0 36 36">
+               <path className="text-white/5" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+               <motion.path 
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: discoveryScore / 100 }}
+                className="text-[var(--sp-green)]" 
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="100, 100" 
+               />
+               <text x="18" y="21" className="text-[8px] font-black fill-white text-center" textAnchor="middle">{discoveryScore}</text>
+             </svg>
           </div>
         </div>
       </div>
+
+      {/* Heatmap */}
+      <div className="mb-12">
+        <h2 className="text-white/40 text-xs font-black uppercase tracking-widest mb-6">Activity Heatmap</h2>
+        <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
+          <ListeningHeatmap data={heatmapData} />
+        </div>
+      </div>
+
+      {/* Row 3: Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div>
+          <h2 className="text-white/40 text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2">
+            <BarChart3 size={14} /> Mood Over Time
+          </h2>
+          <div className="bg-white/5 p-6 rounded-3xl border border-white/5 h-[300px]">
+             <MoodTimelineChart data={moodTimeline} />
+          </div>
+        </div>
+        <div>
+          <h2 className="text-white/40 text-xs font-black uppercase tracking-widest mb-6 px-1">Listening Patterns</h2>
+          <div className="bg-white/5 p-6 rounded-3xl border border-white/5 h-[300px]">
+             <ListeningPatternChart data={patternData} />
+          </div>
+        </div>
+      </div>
+
+      {/* Weekly Wrap Card */}
+      {weeklyStats && (
+        <div 
+          onClick={() => setShowWeeklyWrap(true)}
+          className="bg-gradient-to-br from-[#1a0a2e] to-[#0d1b2a] p-8 rounded-[40px] border border-white/10 mb-12 cursor-pointer hover:scale-[1.02] transition-all group overflow-hidden relative"
+        >
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <p className="text-white/40 text-xs font-black uppercase tracking-widest mb-4">Monday Wrap</p>
+              <h2 className="text-4xl font-black text-white mb-2">Your week in Vibe</h2>
+              <p className="text-white/60">Tap to see your top songs and stats.</p>
+            </div>
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center text-white group-hover:bg-[var(--sp-green)] group-hover:text-black transition-colors">
+              <Play fill="currentColor" size={24} />
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Music size={200} />
+          </div>
+        </div>
+      )}
+
+      {showWeeklyWrap && weeklyStats && (
+        <WeeklyWrapModal stats={weeklyStats} onClose={() => setShowWeeklyWrap(false)} />
+      )}
     </div>
   );
 }

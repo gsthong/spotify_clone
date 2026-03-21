@@ -20,6 +20,10 @@ export interface PlaylistItem {
   createdAt: Date;
 }
 
+export type PlayerMode = 'default' | 'vinyl' | 'cassette' | 'terminal' | 'zen' | 'focus';
+export type SpatialPreset = 'off' | 'concert' | 'headphones' | 'room' | 'stadium';
+export type ThemeName = 'midnight' | 'amoled' | 'pastel' | 'crt' | 'neon';
+
 export interface AudioState {
   currentTrack: Track | null;
   queue: Track[];
@@ -31,6 +35,11 @@ export interface AudioState {
   accentColor: string;
   radioMode?: boolean;
   shuffleMood?: Mood;
+  playerMode: PlayerMode;
+  spatialPreset: SpatialPreset;
+  theme: ThemeName;
+  ambientVolumes: Record<string, number>;
+  streak: number;
 }
 
 export interface ColorPalette {

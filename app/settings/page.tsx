@@ -4,14 +4,17 @@ import React, { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Music, LogOut, Trash2, Globe, Heart, ChevronRight, Settings as SettingsIcon, Download, Upload } from 'lucide-react';
+import { useAudio } from '@/lib/audio-context';
 import { useScrobble } from '@/hooks/use-scrobble';
 import { db } from '@/lib/db';
+import { AmbientMixer } from '@/components/ambient-mixer';
 import { SpotifyImport } from '@/components/spotify-import';
 import { exportLibrary, importLibrary, downloadFile } from '@/lib/backup';
 
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { state, setTheme, setSpatialPreset } = useAudio();
   const { isConnected, connect, disconnect, fetchSession, scrobbleCount } = useScrobble();
 
   useEffect(() => {
@@ -69,6 +72,53 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
+          </section>
+
+          {/* Appearance */}
+          <section>
+            <h3 className="text-white/40 text-[11px] font-black uppercase tracking-widest mb-4">Appearance</h3>
+            <div className="bg-white/5 rounded-2xl p-6">
+              <p className="text-white font-bold mb-4">Theme</p>
+              <div className="grid grid-cols-5 gap-2">
+                {['midnight', 'amoled', 'pastel', 'crt', 'neon'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTheme(t)}
+                    className={`aspect-square rounded-xl flex items-center justify-center text-[10px] font-black uppercase tracking-tighter border-2 transition-all ${
+                      state.theme === t ? 'border-[var(--sp-green)] scale-110 shadow-[0_0_15px_rgba(29,185,84,0.3)]' : 'border-white/5 opacity-40 hover:opacity-100'
+                    }`}
+                    style={{ background: t === 'amoled' ? '#000' : t === 'midnight' ? '#121212' : t === 'pastel' ? '#1a1520' : t === 'crt' ? '#0a0f0a' : '#080010' }}
+                  >
+                    <span className={t === 'crt' ? 'text-[#0f0]' : 'text-white'}>{t}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Audio Advanced */}
+          <section>
+             <h3 className="text-white/40 text-[11px] font-black uppercase tracking-widest mb-4">Audio Advanced</h3>
+             <div className="flex flex-col gap-4">
+                <div className="bg-white/5 rounded-2xl p-6">
+                  <p className="text-white font-bold mb-4">Spatial Preset</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['off', 'headphones', 'room', 'concert', 'stadium'].map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setSpatialPreset(p)}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                          state.spatialPreset === p ? 'bg-[var(--sp-green)] text-black' : 'bg-white/5 text-white/40 hover:bg-white/10'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <AmbientMixer />
+             </div>
           </section>
 
           {/* Spotify Import */}

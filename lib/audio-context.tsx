@@ -37,6 +37,10 @@ interface AudioContextType {
   toggleRadio: () => void;
   smartShuffle: (mood: Mood) => Promise<void>;
   reorderQueue: (oldIndex: number, newIndex: number) => void;
+  setPlayerMode: (mode: any) => void;
+  setSpatialPreset: (preset: any) => void;
+  setTheme: (theme: any) => void;
+  setAmbientVolume: (sound: string, volume: number) => void;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }
 
@@ -63,15 +67,27 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     accentColor: '#c084fc',
     radioMode: false,
     shuffleMood: null,
+    playerMode: 'default',
+    spatialPreset: 'off',
+    theme: 'midnight',
+    ambientVolumes: {},
+    streak: 0,
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const pannerNodeRef = useRef<PannerNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const analyserNodeRef = useRef<AnalyserNode | null>(null);
+
   const queueRef = useRef<Track[]>([]);
   const queueIndexRef = useRef(0);
   const isPlayingRef = useRef(false);
   const streamCacheRef = useRef<Map<string, StreamCacheEntry>>(new Map());
   const scrobbleTrackIdRef = useRef<string | null>(null);
   const radioModeRef = useRef(false);
+  const isTransitioningRef = useRef(false);
 
   const { scrobble } = useScrobble();
 
@@ -79,6 +95,75 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { queueIndexRef.current = state.currentQueueIndex; }, [state.currentQueueIndex]);
   useEffect(() => { isPlayingRef.current = state.isPlaying; }, [state.isPlaying]);
   useEffect(() => { radioModeRef.current = !!state.radioMode; }, [state.radioMode]);
+
+  // Audio Engine Initialization
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    const initAudio = () => {
+      if (audioContextRef.current) return;
+
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioCtx.createMediaElementSource(audioRef.current!);
+      const panner = audioCtx.createPanner();
+      const gain = audioCtx.createGain();
+      const analyser = audioCtx.createAnalyser();
+
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'inverse';
+      
+      source.connect(panner);
+      panner.connect(gain);
+      gain.connect(analyser);
+      analyser.connect(audioCtx.destination);
+
+      audioContextRef.current = audioCtx;
+      sourceNodeRef.current = source;
+      pannerNodeRef.current = panner;
+      gainNodeRef.current = gain;
+      analyserNodeRef.current = analyser;
+    };
+
+    const handleFirstInteraction = () => {
+      initAudio();
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+
+    window.addEventListener('click', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, []);
+
+  // Spatial Audio Updater
+  useEffect(() => {
+    const panner = pannerNodeRef.current;
+    if (!panner) return;
+
+    if (state.spatialPreset === 'off') {
+      panner.setPosition(0, 0, 0);
+    } else if (state.spatialPreset === 'headphones') {
+      panner.setPosition(1.5, 0, 0.5);
+      panner.rolloffFactor = 0.5;
+    } else if (state.spatialPreset === 'room') {
+      panner.setPosition(3, 1, 2);
+    } else if (state.spatialPreset === 'concert') {
+      panner.setPosition(0, 5, 10);
+      panner.rolloffFactor = 1.5;
+    } else if (state.spatialPreset === 'stadium') {
+      panner.setPosition(0, 15, 30);
+      panner.rolloffFactor = 3;
+    }
+  }, [state.spatialPreset]);
+
+  // Theme Sync
+  useEffect(() => {
+    import('./themes').then(m => m.applyTheme(state.theme));
+  }, [state.theme]);
 
   // Scrobble watcher
   useEffect(() => {
@@ -92,7 +177,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.currentTime, state.currentTrack, state.isPlaying, scrobble]);
 
-  // ─── Stream URL resolver with client-side cache ──────────────
+  // Stream URL resolver with client-side cache
   const resolveStreamUrl = useCallback(async (youtubeId: string): Promise<string> => {
     const cache = streamCacheRef.current;
     const cached = cache.get(youtubeId);
@@ -130,7 +215,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Resolve the effective URL for a track (checks cache, fetches if needed)
   const getPlayableUrl = useCallback(async (track: Track): Promise<string> => {
     if (track.url && isAlreadyResolved(track.url)) return track.url;
     if (track.url && track.url.startsWith('http') && !isYouTubeId(track.id)) return track.url;
@@ -144,15 +228,52 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     audio.volume = 0.7;
     audioRef.current = audio;
 
+    const handleTrackTransition = async () => {
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
+      
+      const queue = queueRef.current;
+      const idx = queueIndexRef.current;
+      const nextIndex = (idx + 1) % queue.length;
+      const next = queue[nextIndex];
+      
+      if (!next || queue.length <= 1) {
+        isTransitioningRef.current = false;
+        return;
+      }
+
+      const gain = gainNodeRef.current;
+      if (gain && audioContextRef.current) {
+        gain.gain.linearRampToValueAtTime(0, audioContextRef.current.currentTime + 5);
+      }
+
+      setTimeout(async () => {
+        nextTrack();
+        if (gain && audioContextRef.current) {
+          gain.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+          gain.gain.linearRampToValueAtTime(state.volume, audioContextRef.current.currentTime + 3);
+        }
+        isTransitioningRef.current = false;
+      }, 4500);
+    };
+
     const handleTimeUpdate = () => {
+      if (!audio) return;
       setState(prev => ({ ...prev, currentTime: audio.currentTime }));
+      
+      const duration = audio.duration;
+      const timeLeft = duration - audio.currentTime;
+      if (timeLeft > 0 && timeLeft <= 5 && !isTransitioningRef.current) {
+        handleTrackTransition();
+      }
     };
 
     const handleEnded = async () => {
+      if (isTransitioningRef.current) return;
+      
       const queue = queueRef.current;
       const idx = queueIndexRef.current;
       
-      // Save to history (Feature 5)
       if (state.currentTrack) {
         db.history.add({
           trackId: state.currentTrack.id,
@@ -162,11 +283,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         db.tracks.where('id').equals(state.currentTrack.id).modify(t => {
           t.plays = (t.plays || 0) + 1;
         });
+        updateStreak();
       }
 
       if (queue.length === 0) return;
 
-      // Radio Mode Logic (Feature 2)
       if (radioModeRef.current && idx >= queue.length - 2) {
         try {
           const res = await fetch(`${PROXY_URL}/related?id=${state.currentTrack?.id || queue[idx]?.id}`);
@@ -210,6 +331,31 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const updateStreak = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const lastStreakDate = localStorage.getItem('vibe-last-streak-date');
+      const currentStreak = parseInt(localStorage.getItem('vibe-streak') || '0');
+
+      if (lastStreakDate === today) return;
+
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      let newStreak = 1;
+      if (lastStreakDate === yesterday) {
+        newStreak = currentStreak + 1;
+      }
+
+      localStorage.setItem('vibe-streak', newStreak.toString());
+      localStorage.setItem('vibe-last-streak-date', today);
+      setState(prev => ({ ...prev, streak: newStreak }));
+
+      if ([3, 7, 30, 100].includes(newStreak)) {
+        let msg = `🔥 ${newStreak} day streak! Keep it going`;
+        if (newStreak === 30) msg = "🔥 30 days! Absolute legend";
+        if (newStreak === 100) msg = "🔥 100 DAYS. Unreal.";
+        window.dispatchEvent(new CustomEvent('vibe-toast', { detail: { message: msg, type: 'success' } }));
+      }
+    };
+
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
 
@@ -218,7 +364,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       audio.removeEventListener('ended', handleEnded);
       audio.pause();
     };
-  }, [playAudioSrc]);
+  }, [playAudioSrc, getPlayableUrl]);
 
   const play = useCallback((track?: Track) => {
     const audio = audioRef.current;
@@ -226,17 +372,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     if (track) {
       audio.pause();
-      setState(prev => ({
-        ...prev,
-        currentTrack: track,
-        isPlaying: true,
-        currentTime: 0,
-      }));
+      setState(prev => ({ ...prev, currentTrack: track, isPlaying: true, currentTime: 0 }));
 
       (async () => {
         const url = await getPlayableUrl(track);
         if (!url) {
-          console.warn('[audio] Could not resolve stream for:', track.id);
           setState(prev => ({ ...prev, isPlaying: false }));
           return;
         }
@@ -256,11 +396,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const togglePlay = useCallback(() => {
-    if (isPlayingRef.current) {
-      pause();
-    } else {
-      play();
-    }
+    if (isPlayingRef.current) pause();
+    else play();
   }, [play, pause]);
 
   const seek = useCallback((time: number) => {
@@ -293,7 +430,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!next || !audio) return;
 
     audio.pause();
-
     setState(prev => ({
       ...prev,
       currentTrack: next,
@@ -326,7 +462,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!prev_ || !audio) return;
 
     audio.pause();
-
     setState(prev => ({
       ...prev,
       currentTrack: prev_,
@@ -379,14 +514,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setState(prev => {
       let newQueue = [...prev.queue];
       const current = prev.currentTrack;
-      
-      // Filter out current track to re-insert it at 0
-      if (current) {
-        newQueue = newQueue.filter(t => t.id !== current.id);
-      }
+      if (current) newQueue = newQueue.filter(t => t.id !== current.id);
 
       if (!mood) {
-        // Fisher-Yates Full Shuffle
         for (let i = newQueue.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [newQueue[i], newQueue[j]] = [newQueue[j], newQueue[i]];
@@ -394,31 +524,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       } else {
         const moodTracks = newQueue.filter(t => t.mood === mood);
         const otherTracks = newQueue.filter(t => t.mood !== mood);
-
         if (moodTracks.length < 3) {
           window.dispatchEvent(new CustomEvent('vibe-toast', { detail: { message: `Not enough ${mood} tracks`, type: 'info' } }));
-          // Fallback to full shuffle
           for (let i = newQueue.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [newQueue[i], newQueue[j]] = [newQueue[j], newQueue[i]];
           }
         } else {
-          // Weighted shuffle for mood tracks (less plays = more likely)
           moodTracks.sort((a, b) => (a.plays || 0) - (b.plays || 0) + (Math.random() * 5 - 2.5));
           newQueue = [...moodTracks, ...otherTracks];
         }
       }
 
-      if (current) {
-        newQueue.unshift(current);
-      }
-
-      return {
-        ...prev,
-        queue: newQueue,
-        currentQueueIndex: 0,
-        shuffleMood: mood
-      };
+      if (current) newQueue.unshift(current);
+      return { ...prev, queue: newQueue, currentQueueIndex: 0, shuffleMood: mood };
     });
   }, []);
 
@@ -434,20 +553,31 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       newQueue.splice(newIndex, 0, removed);
       
       let newCurrentIndex = prev.currentQueueIndex;
-      if (oldIndex === prev.currentQueueIndex) {
-        newCurrentIndex = newIndex;
-      } else if (oldIndex < prev.currentQueueIndex && newIndex >= prev.currentQueueIndex) {
-        newCurrentIndex--;
-      } else if (oldIndex > prev.currentQueueIndex && newIndex <= prev.currentQueueIndex) {
-        newCurrentIndex++;
-      }
+      if (oldIndex === prev.currentQueueIndex) newCurrentIndex = newIndex;
+      else if (oldIndex < prev.currentQueueIndex && newIndex >= prev.currentQueueIndex) newCurrentIndex--;
+      else if (oldIndex > prev.currentQueueIndex && newIndex <= prev.currentQueueIndex) newCurrentIndex++;
 
-      return {
-        ...prev,
-        queue: newQueue,
-        currentQueueIndex: newCurrentIndex
-      };
+      return { ...prev, queue: newQueue, currentQueueIndex: newCurrentIndex };
     });
+  }, []);
+
+  const setPlayerMode = useCallback((playerMode: any) => {
+    setState(prev => ({ ...prev, playerMode }));
+  }, []);
+
+  const setSpatialPreset = useCallback((spatialPreset: any) => {
+    setState(prev => ({ ...prev, spatialPreset }));
+  }, []);
+
+  const setTheme = useCallback((theme: any) => {
+    setState(prev => ({ ...prev, theme }));
+  }, []);
+
+  const setAmbientVolume = useCallback((sound: string, volume: number) => {
+    setState(prev => ({
+      ...prev,
+      ambientVolumes: { ...prev.ambientVolumes, [sound]: volume }
+    }));
   }, []);
 
   return (
@@ -455,6 +585,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       state, play, pause, togglePlay, seek, setVolume, toggleMute,
       nextTrack, previousTrack, setQueue, addToQueue, removeFromQueue, setAccentColor,
       toggleRadio, smartShuffle, reorderQueue,
+      setPlayerMode, setSpatialPreset, setTheme, setAmbientVolume,
       audioRef,
     }}>
       {children}

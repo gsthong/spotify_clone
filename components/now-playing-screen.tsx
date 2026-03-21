@@ -11,11 +11,18 @@ import { ShareSheet } from '@/components/share-sheet';
 import {
   ChevronDown, MoreHorizontal,
   Play, Pause, SkipBack, SkipForward,
-  Shuffle, Repeat, Volume2, VolumeX, Heart, Share2, Radio,
+  Shuffle, Repeat, Volume2, VolumeX, Heart, Share2, Radio, Layout
 } from 'lucide-react';
 
+import { ModeSwitcher } from '@/components/mode-switcher';
+// Import player modes (to be created)
+import { VinylPlayer } from '@/components/player-modes/vinyl-player';
+import { CassettePlayer } from '@/components/player-modes/cassette-player';
+import { ZenPlayer } from '@/components/player-modes/zen-player';
+import { FocusPlayer } from '@/components/player-modes/focus-player';
+
 export function NowPlayingScreen() {
-  const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio } = useAudio();
+  const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio, setPlayerMode } = useAudio();
   const { showNowPlaying, closeNowPlaying } = useNowPlaying();
   const progressRef = useRef<HTMLDivElement>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -23,6 +30,7 @@ export function NowPlayingScreen() {
   const [showFullLyrics, setShowFullLyrics] = useState(false);
   const [showArtistPanel, setShowArtistPanel] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showModeSwitcher, setShowModeSwitcher] = useState(false);
 
   useEffect(() => { 
     setAlbumKey(k => k + 1); 
@@ -92,54 +100,80 @@ export function NowPlayingScreen() {
                   Playing from Library
                 </p>
               </div>
-              <button>
-                <MoreHorizontal size={24} color="white" />
-              </button>
+              <div className="relative">
+                <button onClick={() => setShowModeSwitcher(!showModeSwitcher)} className="text-white/60 hover:text-white transition-colors">
+                  <Layout size={24} />
+                </button>
+                <AnimatePresence>
+                  {showModeSwitcher && (
+                    <ModeSwitcher 
+                      currentMode={state.playerMode} 
+                      onSelect={setPlayerMode} 
+                      onClose={() => setShowModeSwitcher(false)} 
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
-            {/* Album art — Large on mobile */}
-            <motion.div
-              layoutId="mobile-album-art"
-              key={albumKey}
-              className="flex justify-center mb-10 mt-4"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <img
-                src={state.currentTrack.albumArt}
-                alt=""
-                style={{
-                  width: 'calc(100vw - 48px)',
-                  maxWidth: '360px',
-                  aspectRatio: '1',
-                  objectFit: 'cover',
-                  borderRadius: '8px',
-                  boxShadow: '0 32px 80px rgba(0,0,0,0.7)',
-                }}
-              />
-            </motion.div>
+            {/* Player Main Content */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+              {state.playerMode === 'vinyl' ? (
+                <VinylPlayer track={state.currentTrack} isPlaying={state.isPlaying} />
+              ) : state.playerMode === 'cassette' ? (
+                <CassettePlayer track={state.currentTrack} isPlaying={state.isPlaying} progress={progressPercent} />
+              ) : state.playerMode === 'zen' ? (
+                <ZenPlayer track={state.currentTrack} />
+              ) : state.playerMode === 'focus' ? (
+                <FocusPlayer track={state.currentTrack} isPlaying={state.isPlaying} progress={progressPercent} />
+              ) : (
+                <>
+                  {/* Album art — Large on mobile */}
+                  <motion.div
+                    layoutId="mobile-album-art"
+                    key={albumKey}
+                    className="flex justify-center mb-10 mt-4"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <img
+                      src={state.currentTrack.albumArt}
+                      alt=""
+                      style={{
+                        width: 'calc(100vw - 48px)',
+                        maxWidth: '360px',
+                        aspectRatio: '1',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        boxShadow: '0 32px 80px rgba(0,0,0,0.7)',
+                      }}
+                    />
+                  </motion.div>
 
-            {/* Track info + heart */}
-            <div className="flex items-center justify-between mb-6 px-1">
-              <div className="min-w-0 flex-1">
-                <p style={{ fontSize: '24px', fontWeight: 900, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {state.currentTrack.title}
-                </p>
-                <p 
-                  onClick={() => setShowArtistPanel(true)}
-                  style={{ fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: '2px', cursor: 'pointer' }}
-                >
-                  {state.currentTrack.artist}
-                </p>
-              </div>
-              <motion.button
-                onClick={() => setIsFavorite(f => !f)}
-                whileTap={{ scale: 0.8 }}
-                style={{ color: isFavorite ? 'var(--sp-green)' : 'white', flexShrink: 0, marginLeft: '16px' }}
-              >
-                <Heart size={26} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={1.5} />
-              </motion.button>
+                  {/* Track info + heart */}
+                  <div className="flex items-center justify-between mb-6 px-1 w-full">
+                    <div className="min-w-0 flex-1">
+                      <p style={{ fontSize: '24px', fontWeight: 900, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {state.currentTrack.title}
+                      </p>
+                      <p 
+                        onClick={() => setShowArtistPanel(true)}
+                        style={{ fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: '2px', cursor: 'pointer' }}
+                      >
+                        {state.currentTrack.artist}
+                      </p>
+                    </div>
+                    <motion.button
+                      onClick={() => setIsFavorite(f => !f)}
+                      whileTap={{ scale: 0.8 }}
+                      style={{ color: isFavorite ? 'var(--sp-green)' : 'white', flexShrink: 0, marginLeft: '16px' }}
+                    >
+                      <Heart size={26} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={1.5} />
+                    </motion.button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Progress */}
