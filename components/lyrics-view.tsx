@@ -21,7 +21,14 @@ export function LyricsView({ mode, onClose }: LyricsViewProps) {
   useEffect(() => {
     if (currentLine === -1 || !scrollRef.current) return;
 
+    // Dispatch event for notifications
     const activeLine = scrollRef.current.children[currentLine] as HTMLElement;
+    if (activeLine) {
+       window.dispatchEvent(new CustomEvent('vibe-lyric-change', { 
+         detail: { lyric: lines[currentLine]?.text } 
+       }));
+    }
+
     if (activeLine && containerRef.current) {
       const container = containerRef.current;
       const offset = mode === 'fullscreen' ? container.offsetHeight * 0.35 : container.offsetHeight / 2 - activeLine.offsetHeight / 2;

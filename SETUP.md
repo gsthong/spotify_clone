@@ -93,3 +93,23 @@ Browser → Next.js Frontend (Vercel/local)
 
 **CORS errors in browser**
 - The proxy allows all origins (`*`). If you see CORS errors, check your Railway URL in `.env.local`.
+
+---
+
+## Discord Rich Presence (Desktop)
+
+Vibe supports Discord RPC via a local bridge.
+1. Navigate to `discord-bridge/`
+2. `npm install`
+3. Update `clientId` in `discord-bridge.js` (Optional)
+4. `node discord-bridge.js`
+5. Keep the bridge running while using Vibe. Status will sync automatically.
+
+---
+
+## Android Home Screen Widget
+
+Vibe supports minimal widgets via TWA (Trusted Web Activity).
+1. Build your app as an APK using [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap).
+2. The widget point is `/widget`.
+3. Configure your TWA manifest to use this URL for the widget provider.

@@ -18,6 +18,8 @@ const MODES: { id: PlayerMode; label: string; icon: any }[] = [
   { id: 'terminal', label: 'Terminal', icon: Terminal },
   { id: 'zen', label: 'Zen Art', icon: Sparkles },
   { id: 'focus', label: 'Focus', icon: Target },
+  { id: 'concert', label: 'Concert', icon: Disc },
+  { id: 'night-drive', label: 'Night Drive', icon: Layout },
 ];
 
 export function ModeSwitcher({ currentMode, onSelect, onClose }: ModeSwitcherProps) {

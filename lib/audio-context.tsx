@@ -42,6 +42,7 @@ interface AudioContextType {
   setTheme: (theme: any) => void;
   setAmbientVolume: (sound: string, volume: number) => void;
   audioRef: React.RefObject<HTMLAudioElement | null>;
+  analyserRef: React.RefObject<AnalyserNode | null>;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -176,6 +177,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       scrobble(track.artist, track.title);
     }
   }, [state.currentTime, state.currentTrack, state.isPlaying, scrobble]);
+
+  const { updateNowPlaying } = useScrobble();
+  useEffect(() => {
+    if (state.currentTrack && state.isPlaying) {
+      updateNowPlaying(state.currentTrack);
+    }
+  }, [state.currentTrack?.id, state.isPlaying, updateNowPlaying]);
 
   // Stream URL resolver with client-side cache
   const resolveStreamUrl = useCallback(async (youtubeId: string): Promise<string> => {
@@ -586,7 +594,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       nextTrack, previousTrack, setQueue, addToQueue, removeFromQueue, setAccentColor,
       toggleRadio, smartShuffle, reorderQueue,
       setPlayerMode, setSpatialPreset, setTheme, setAmbientVolume,
-      audioRef,
+      audioRef, analyserRef: analyserNodeRef,
     }}>
       {children}
     </AudioContext.Provider>

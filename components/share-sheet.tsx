@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Share2, Link, QrCode, Download, Copy, Check } from 'lucide-react';
+import { X, Share2, Link, QrCode, Download, Copy, Check, Users } from 'lucide-react';
 import { Track } from '@/lib/types';
 import { useShare } from '@/hooks/use-share';
 import { useSync } from '@/hooks/use-sync';
@@ -12,9 +12,10 @@ interface ShareSheetProps {
   currentTime: number;
   isOpen: boolean;
   onClose: () => void;
+  onOpenListenTogether?: () => void;
 }
 
-export function ShareSheet({ track, currentTime, isOpen, onClose }: ShareSheetProps) {
+export function ShareSheet({ track, currentTime, isOpen, onClose, onOpenListenTogether }: ShareSheetProps) {
   const { shareTrack, generateShareCard } = useShare();
   const { copySyncLink, generateQRCode } = useSync();
   const [activeTab, setActiveTab] = useState<'options' | 'card' | 'qr'>('options');
@@ -99,6 +100,16 @@ export function ShareSheet({ track, currentTime, isOpen, onClose }: ShareSheetPr
                   <div className="text-left">
                     <p className="text-white text-sm font-bold">Copy Deep Link</p>
                     <p className="text-white/40 text-xs">Link with timestamp for friends</p>
+                  </div>
+                </button>
+
+                <button onClick={() => { onOpenListenTogether?.(); onClose(); }} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400">
+                    <Users size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white text-sm font-bold">Listen Together</p>
+                    <p className="text-white/40 text-xs">Host a live sync session</p>
                   </div>
                 </button>
               </div>

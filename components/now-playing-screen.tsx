@@ -20,6 +20,9 @@ import { VinylPlayer } from '@/components/player-modes/vinyl-player';
 import { CassettePlayer } from '@/components/player-modes/cassette-player';
 import { ZenPlayer } from '@/components/player-modes/zen-player';
 import { FocusPlayer } from '@/components/player-modes/focus-player';
+import { ConcertPlayer } from '@/components/player-modes/concert-player';
+import { NightDrivePlayer } from '@/components/player-modes/night-drive-player';
+import { ListenTogetherPanel } from '@/components/listen-together-panel';
 
 export function NowPlayingScreen() {
   const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio, setPlayerMode } = useAudio();
@@ -31,6 +34,7 @@ export function NowPlayingScreen() {
   const [showArtistPanel, setShowArtistPanel] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showModeSwitcher, setShowModeSwitcher] = useState(false);
+  const [isListenTogetherOpen, setIsListenTogetherOpen] = useState(false);
 
   useEffect(() => { 
     setAlbumKey(k => k + 1); 
@@ -126,6 +130,10 @@ export function NowPlayingScreen() {
                 <ZenPlayer track={state.currentTrack} />
               ) : state.playerMode === 'focus' ? (
                 <FocusPlayer track={state.currentTrack} isPlaying={state.isPlaying} progress={progressPercent} />
+              ) : state.playerMode === 'concert' ? (
+                <ConcertPlayer />
+              ) : state.playerMode === 'night-drive' ? (
+                <NightDrivePlayer />
               ) : (
                 <>
                   {/* Album art — Large on mobile */}
@@ -306,6 +314,12 @@ export function NowPlayingScreen() {
               currentTime={state.currentTime}
               isOpen={showShareSheet}
               onClose={() => setShowShareSheet(false)}
+              onOpenListenTogether={() => setIsListenTogetherOpen(true)}
+            />
+
+            <ListenTogetherPanel 
+              isOpen={isListenTogetherOpen}
+              onClose={() => setIsListenTogetherOpen(false)}
             />
 
           </div>

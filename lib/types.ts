@@ -20,7 +20,7 @@ export interface PlaylistItem {
   createdAt: Date;
 }
 
-export type PlayerMode = 'default' | 'vinyl' | 'cassette' | 'terminal' | 'zen' | 'focus';
+export type PlayerMode = 'default' | 'vinyl' | 'cassette' | 'terminal' | 'zen' | 'focus' | 'concert' | 'night-drive';
 export type SpatialPreset = 'off' | 'concert' | 'headphones' | 'room' | 'stadium';
 export type ThemeName = 'midnight' | 'amoled' | 'pastel' | 'crt' | 'neon';
 

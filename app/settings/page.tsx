@@ -3,9 +3,10 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Music, LogOut, Trash2, Globe, Heart, ChevronRight, Settings as SettingsIcon, Download, Upload } from 'lucide-react';
+import { Music, LogOut, Trash2, Globe, Heart, ChevronRight, Settings as SettingsIcon, Download, Upload, MessageSquare, Mic, Users, Bell } from 'lucide-react';
 import { useAudio } from '@/lib/audio-context';
 import { useScrobble } from '@/hooks/use-scrobble';
+import { useVoiceCommands } from '@/hooks/use-voice-commands';
 import { db } from '@/lib/db';
 import { AmbientMixer } from '@/components/ambient-mixer';
 import { SpotifyImport } from '@/components/spotify-import';
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const { state, setTheme, setSpatialPreset } = useAudio();
   const { isConnected, connect, disconnect, fetchSession, scrobbleCount } = useScrobble();
+  const { isListening, startListening, stopListening } = useVoiceCommands();
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -49,6 +51,7 @@ export default function SettingsPage() {
           <section>
             <h3 className="text-white/40 text-[11px] font-black uppercase tracking-widest mb-4">Integrations</h3>
             <div className="bg-white/5 rounded-2xl overflow-hidden">
+              {/* Last.fm */}
               <div className="p-6 flex items-center justify-between border-b border-white/5">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-lg bg-[#d51007] flex items-center justify-center text-white">
@@ -70,6 +73,60 @@ export default function SettingsPage() {
                     Connect
                   </button>
                 )}
+              </div>
+
+              {/* Discord RPC */}
+              <div className="p-6 flex items-center justify-between border-b border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-[#5865F2] flex items-center justify-center text-white">
+                    <MessageSquare size={20} />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">Discord Rich Presence</p>
+                    <p className="text-white/40 text-[10px] uppercase font-black tracking-widest mt-0.5">Desktop only</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                   <p className="text-white/20 text-[10px] font-bold">Bridge required</p>
+                </div>
+              </div>
+
+              {/* Lyric Notifications */}
+              <div className="p-6 flex items-center justify-between border-b border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white/60">
+                    <Bell size={20} />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">Lyric Notifications</p>
+                    <p className="text-white/40 text-xs">Desktop & Android Chrome</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => Notification.requestPermission()} 
+                  className="px-4 py-2 rounded-full bg-white/5 text-white/60 text-xs font-bold hover:bg-white/10"
+                >
+                  Enable
+                </button>
+              </div>
+
+              {/* Voice Commands */}
+              <div className="p-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-400">
+                    <Mic size={20} />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">Voice Commands</p>
+                    <p className="text-white/40 text-xs">{isListening ? 'Listening...' : 'Say "Hey Vibe" to control'}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={isListening ? stopListening : startListening}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isListening ? 'bg-[var(--sp-green)] text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                >
+                  {isListening ? 'Stop' : 'Start'}
+                </button>
               </div>
             </div>
           </section>

@@ -1,0 +1,46 @@
+{
+  "name": "Vibe Music",
+  "short_name": "Vibe",
+  "description": "Premium de-branded music player",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#1db954",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play / Pause",
+      "short_name": "Play",
+      "description": "Toggle playback",
+      "url": "/?action=toggle",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Next Track",
+      "short_name": "Next",
+      "description": "Skip to next track",
+      "url": "/?action=next",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Search",
+      "short_name": "Search",
+      "description": "Search for music",
+      "url": "/search",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    }
+  ],
+  "share_target": {
+    "action": "/search",
+    "method": "GET",
+    "params": {
+      "text": "q"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "vibe-discord-bridge",
+  "version": "1.0.0",
+  "description": "Local bridge for Discord RPC in Vibe Music PWA",
+  "main": "discord-bridge.js",
+  "dependencies": {
+    "discord-rpc": "^4.0.1",
+    "ws": "^8.16.0"
+  }
+}

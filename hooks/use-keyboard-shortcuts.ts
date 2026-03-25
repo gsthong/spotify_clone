@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useAudio } from '@/lib/audio-context';
 
 export function useKeyboardShortcuts() {
-  const { togglePlay, nextTrack, previousTrack, setVolume, state } = useAudio();
+  const { togglePlay, nextTrack, previousTrack, setVolume, setPlayerMode, state } = useAudio();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,6 +37,18 @@ export function useKeyboardShortcuts() {
         case 'KeyM':
           // toggleMute would be better but I'll use setVolume(0) for now if toggleMute isn't in scope easily
           // actually toggleMute is in context
+          break;
+        case 'KeyC':
+          if (e.shiftKey) {
+            e.preventDefault();
+            setPlayerMode('concert');
+          }
+          break;
+        case 'KeyN':
+          if (e.shiftKey) {
+            e.preventDefault();
+            setPlayerMode('night-drive');
+          }
           break;
       }
     };

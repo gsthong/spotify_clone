@@ -17,6 +17,7 @@ const db = new Dexie('VibeDB') as Dexie & {
   stats: EntityTable<{ id?: number; date: string; type: string; value: any }, 'id'>;
   duplicates: EntityTable<{ key: string; trackIds: string[] }, 'key'>;
   prefs: EntityTable<{ key: string; value: any }, 'key'>;
+  scrobble_queue: EntityTable<{ id?: number; trackId: string; timestamp: number; status: string }, 'id'>;
 };
 
 // Schema versioning
@@ -36,6 +37,10 @@ db.version(3).stores({
   stats: '++id, date, type',
   duplicates: 'key',
   prefs: 'key'
+});
+
+db.version(4).stores({
+  scrobble_queue: '++id, trackId, timestamp, status'
 });
 
 export { db };
