@@ -27,7 +27,8 @@ export function TrackRow({ track, index, isPlaying, isCurrent, onClick }: TrackR
             <motion.div
               animate={{ height: ['20%', '100%', '40%', '80%', '20%'] }}
               transition={{ repeat: Infinity, duration: 0.6 }}
-              style={{ width: '2px', backgroundColor: 'var(--sp-green)' }}
+              className="bloom"
+              style={{ width: '2.5px', backgroundColor: 'var(--sp-green)', borderRadius: '1px' }}
             />
             <motion.div
               animate={{ height: ['60%', '20%', '100%', '40%', '60%'] }}
@@ -58,9 +59,10 @@ export function TrackRow({ track, index, isPlaying, isCurrent, onClick }: TrackR
 
       <div className="flex-1 min-w-0">
         <p
+          className="font-premium"
           style={{
             fontSize: '14px',
-            fontWeight: 500,
+            fontWeight: 700,
             color: isCurrent ? 'var(--sp-green)' : 'white',
             overflow: 'hidden',
             textOverflow: 'ellipsis',

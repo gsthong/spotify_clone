@@ -127,12 +127,11 @@ export function PlayerBar() {
 
   return (
     <div
-      className="flex items-center px-4"
+      className="glass flex items-center px-4"
       style={{
         height: '90px',
-        backgroundColor: '#181818',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
         flexShrink: 0,
+        zIndex: 10,
       }}
     >
       {/* LEFT — track info (30%) */}

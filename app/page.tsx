@@ -20,10 +20,10 @@ export default function HomePage() {
   return (
     <div className="h-full">
       {/* ── DESKTOP HOME (md+) ─────────────────────────────────── */}
-      <div className="hidden md:block h-full overflow-y-auto overflow-x-hidden" style={{ backgroundColor: '#121212' }}>
-        {/* Header gradient */}
-        <div style={{ background: 'linear-gradient(to bottom, #1e3a2a 0%, #121212 340px)', padding: '24px 24px 0' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'white', marginBottom: '20px' }}>
+      <div className="hidden md:block h-full overflow-y-auto overflow-x-hidden relative">
+        {/* Header section with glass header */}
+        <div className="p-8 pb-0">
+          <h1 className="text-4xl font-premium font-black text-white mb-8 tracking-tighter">
             {greeting}
           </h1>
 
@@ -56,7 +56,7 @@ export default function HomePage() {
                 </p>
                 {/* Play button on hover */}
                 <motion.div
-                  className="absolute right-3 flex items-center justify-center rounded-full"
+                  className="absolute right-3 flex items-center justify-center rounded-full bloom"
                   style={{ width: '32px', height: '32px', backgroundColor: '#1db954', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
                   initial={{ opacity: 0, scale: 0.85 }}
                   whileHover={{ opacity: 1, scale: 1 }}
@@ -68,11 +68,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div style={{ padding: '0 24px 32px' }}>
+        <div className="p-8 pt-0 pb-32">
           {/* Recently played */}
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 style={{ fontSize: '22px', fontWeight: 900, color: 'white' }}>Recently played</h2>
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-premium font-black text-white tracking-tight">Recently played</h2>
               <button
                 style={{ fontSize: '13px', fontWeight: 700, color: '#b3b3b3', letterSpacing: '0.05em', transition: 'color 0.1s' }}
                 onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
@@ -158,11 +158,11 @@ export default function HomePage() {
       </div>
 
       {/* ── MOBILE HOME ────────────────────────────────────────── */}
-      <div className="block md:hidden h-full overflow-y-auto overflow-x-hidden" style={{ backgroundColor: '#121212' }}>
+      <div className="block md:hidden h-full overflow-y-auto overflow-x-hidden relative">
         {/* Top greeting section */}
-        <div style={{ background: 'linear-gradient(to bottom, #1e3a2a 0%, #121212 280px)', padding: '40px 16px 24px' }}>
-          <div className="flex items-center justify-between mb-6">
-            <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'white' }}>
+        <div className="pt-12 px-4 pb-8">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-2xl font-premium font-black text-white tracking-tighter">
               {greeting}
             </h1>
             <div className="flex gap-4">

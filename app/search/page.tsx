@@ -152,10 +152,7 @@ export default function SearchPage() {
   const showResults = query.trim().length > 0;
 
   return (
-    <div
-      className="h-full overflow-y-auto"
-      style={{ backgroundColor: 'var(--sp-bg)', padding: '24px' }}
-    >
+    <div className="h-full overflow-y-auto p-6 relative">
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -164,29 +161,21 @@ export default function SearchPage() {
       `}</style>
 
       {/* Search input */}
-      <div className="relative mb-6" style={{ maxWidth: '360px' }}>
-        <SearchIcon
-          className="absolute left-3 top-1/2 -translate-y-1/2"
-          size={16}
-          color="#121212"
-        />
-        <input
-          type="text"
-          placeholder="What do you want to play?"
-          value={query}
-          onChange={handleQueryChange}
-          style={{
-            width: '100%',
-            backgroundColor: 'white',
-            color: '#121212',
-            border: 'none',
-            borderRadius: '500px',
-            padding: '10px 16px 10px 40px',
-            fontSize: '14px',
-            fontWeight: 500,
-            outline: 'none',
-          }}
-        />
+      <div className="relative mb-8 max-w-md group">
+        <div className="absolute inset-0 bg-white/5 rounded-full blur-xl group-focus-within:bg-[var(--sp-green)]/10 transition-colors" />
+        <div className="relative">
+          <SearchIcon
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-black/60"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder="Search artists, songs..."
+            value={query}
+            onChange={handleQueryChange}
+            className="w-full bg-white text-black rounded-full py-3 pl-12 pr-6 text-sm font-bold outline-none placeholder:text-black/40 shadow-2xl"
+          />
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -259,14 +248,7 @@ export default function SearchPage() {
               </button>
             </div>
 
-            <h2
-              style={{
-                fontSize: '22px',
-                fontWeight: 900,
-                color: 'white',
-                marginBottom: '16px',
-              }}
-            >
+            <h2 className="text-2xl font-premium font-black text-white mb-6 tracking-tight">
               Results for &ldquo;{query}&rdquo;
             </h2>
 
@@ -352,14 +334,7 @@ export default function SearchPage() {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
           >
-            <h2
-              style={{
-                fontSize: '22px',
-                fontWeight: 900,
-                color: 'white',
-                marginBottom: '16px',
-              }}
-            >
+            <h2 className="text-2xl font-premium font-black text-white mb-8 tracking-tighter">
               Browse by mood
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -16,7 +16,7 @@ export function Sidebar() {
     <aside className="flex flex-col h-full gap-2" style={{ width: '240px', flexShrink: 0 }}>
 
       {/* Top nav box */}
-      <div className="rounded-lg px-3 py-4" style={{ backgroundColor: '#121212' }}>
+      <div className="glass rounded-xl px-3 py-4 mb-2">
         {/* Spotify wordmark text (no SVG clipping issues) */}
         <div className="px-3 mb-5">
           <span style={{ fontSize: '24px', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
@@ -52,7 +52,7 @@ export function Sidebar() {
       </div>
 
       {/* Library box */}
-      <div className="flex-1 rounded-lg flex flex-col overflow-hidden" style={{ backgroundColor: '#121212' }}>
+      <div className="glass-card flex-1 flex flex-col overflow-hidden">
 
         {/* Library header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">

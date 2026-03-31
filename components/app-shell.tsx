@@ -11,6 +11,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { motion, AnimatePresence } from 'framer-motion';
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -26,7 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Sidebar />
 
           {/* Content panel */}
-          <div style={{ flex: 1, borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: '#121212' }}>
+          <div className="glass-card flex-1 flex flex-col overflow-hidden relative" style={{ borderRadius: '8px' }}>
             {/* Top navigation bar */}
             <div
               style={{
@@ -65,8 +67,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="w-8" />
             </div>
 
-            <main className="flex-1 overflow-y-auto scroll-hide">
-              {children}
+            <main className="flex-1 overflow-hidden relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="h-full overflow-y-auto scroll-hide"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </main>
             <VibeToast />
           </div>
@@ -92,14 +105,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {/* Scrollable page content — padded for fixed mini player + tab bar */}
         <div
+          className="flex-1 relative overflow-hidden"
           style={{
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden',
             paddingBottom: 'calc(64px + 64px + 16px + env(safe-area-inset-bottom))',
           }}
         >
-          {children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="h-full overflow-y-auto overflow-x-hidden"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Mini player sits above tab bar */}
