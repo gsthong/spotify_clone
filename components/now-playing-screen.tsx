@@ -23,6 +23,7 @@ import { FocusPlayer } from '@/components/player-modes/focus-player';
 import { ConcertPlayer } from '@/components/player-modes/concert-player';
 import { NightDrivePlayer } from '@/components/player-modes/night-drive-player';
 import { ListenTogetherPanel } from '@/components/listen-together-panel';
+import { AuroraBackground } from '@/components/aurora-background';
 
 export function NowPlayingScreen() {
   const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio, setPlayerMode } = useAudio();
@@ -73,22 +74,13 @@ export function NowPlayingScreen() {
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
         >
-          {/* Background — blurred album art with color bleed effect */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${state.currentTrack.albumArt})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(80px) brightness(0.35)',
-              transform: 'scale(1.3)',
-            }}
-          />
-          {/* Bottom gradient for text readability */}
+          {/* Background — Aurora effect reacting to accent color */}
+          <AuroraBackground />
+          {/* Bottom gradient and subtle noise for texture */}
           <div 
-            className="absolute inset-0" 
+            className="absolute inset-0 z-0 bg-noise" 
             style={{ 
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%)' 
+              background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.8) 100%)' 
             }} 
           />
 
@@ -137,40 +129,52 @@ export function NowPlayingScreen() {
               ) : (
                 <>
                   {/* Album art — Large on mobile */}
-                  <motion.div
-                    layoutId="mobile-album-art"
-                    key={albumKey}
-                    className="flex justify-center mb-10 mt-4"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <img
-                      src={state.currentTrack.albumArt}
-                      alt=""
-                      style={{
-                        width: 'calc(100vw - 48px)',
-                        maxWidth: '360px',
-                        aspectRatio: '1',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        boxShadow: '0 32px 80px rgba(0,0,0,0.7)',
-                      }}
-                    />
-                  </motion.div>
+                    <motion.div
+                      layoutId={`album-art-${state.currentTrack.id}`}
+                      key={albumKey}
+                      className="flex justify-center mb-10 mt-8 relative group"
+                      initial={{ scale: 0.9, opacity: 0, rotate: -2 }}
+                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      whileHover={{ scale: 1.02 }}
+                    >
+                      <img
+                        src={state.currentTrack.albumArt}
+                        alt=""
+                        className="shadow-[0_40px_100px_rgba(0,0,0,0.9)]"
+                        style={{
+                          width: 'calc(100vw - 64px)',
+                          maxWidth: '380px',
+                          aspectRatio: '1',
+                          objectFit: 'cover',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                        }}
+                      />
+                      <div className="absolute inset-0 rounded-12 ring-1 ring-inset ring-white/10" />
+                    </motion.div>
 
                   {/* Track info + heart */}
                   <div className="flex items-center justify-between mb-6 px-1 w-full">
                     <div className="min-w-0 flex-1">
-                      <p style={{ fontSize: '24px', fontWeight: 900, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <motion.p
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }} 
+                        className="text-glow"
+                        style={{ fontSize: '28px', fontWeight: 900, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
                         {state.currentTrack.title}
-                      </p>
-                      <p 
+                      </motion.p>
+                      <motion.p 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
                         onClick={() => setShowArtistPanel(true)}
-                        style={{ fontSize: '16px', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: '2px', cursor: 'pointer' }}
+                        className="hover:text-white transition-colors"
+                        style={{ fontSize: '18px', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: '4px', cursor: 'pointer' }}
                       >
                         {state.currentTrack.artist}
-                      </p>
+                      </motion.p>
                     </div>
                     <motion.button
                       onClick={() => setIsFavorite(f => !f)}

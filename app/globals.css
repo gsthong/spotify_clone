@@ -3,28 +3,30 @@
 
 :root {
   /* Spotify-exact colors */
-  --sp-bg: #121212;
-  --sp-bg-elevated: #1a1a1a;
-  --sp-bg-highlight: #242424;
+  --sp-bg: #000000;
+  --sp-bg-elevated: #121212;
+  --sp-bg-highlight: #1a1a1a;
   --sp-bg-press: #000;
-  --sp-sidebar: #121212;
-  --sp-player: #181818;
+  --sp-sidebar: #000000;
+  --sp-player: #000000;
   --sp-green: #1db954;
   --sp-green-hover: #1ed760;
   --sp-white: #fff;
   --sp-text-primary: #fff;
   --sp-text-secondary: #b3b3b3;
-  --sp-text-subdued: #6a6a6a;
-  --sp-border: rgba(255,255,255,0.1);
-  --sp-border-subtle: rgba(255,255,255,0.06);
-  /* Glassmorphism tokens */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --sp-text-subdued: #7c7c7c;
+  --sp-border: rgba(255,255,255,0.08);
+  --sp-border-subtle: rgba(255,255,255,0.04);
+  
+  /* Glassmorphism tokens - Refined */
+  --glass-bg: rgba(18, 18, 18, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --glass-blur: blur(24px);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 
   /* Dynamic accent (from album art) */
   --color-accent: #1db954;
+  --color-accent-transparent: rgba(29, 185, 84, 0.2);
 }
 
 @layer utilities {
@@ -36,9 +38,25 @@
     box-shadow: var(--glass-shadow);
   }
   .glass-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.3s ease, border 0.3s ease;
+  }
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .aurora-bg {
+    position: absolute;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: radial-gradient(circle at 50% 50%, var(--color-accent-transparent), transparent 50%);
+    filter: blur(80px);
+    opacity: 0.5;
+    z-index: -1;
+    pointer-events: none;
   }
 }
 
@@ -170,10 +188,14 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.02); }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+.text-glow {
+  text-shadow: 0 0 12px var(--color-accent-transparent);
 }

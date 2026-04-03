@@ -11,6 +11,7 @@ import {
   Heart, Maximize2, ListMusic, Radio,
 } from 'lucide-react';
 import { MoodShuffleBar } from './mood-shuffle-bar';
+import { VibeTooltip } from './vibe-tooltip';
 
 function ProgressBar({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -29,19 +30,19 @@ function ProgressBar({ value, max, onChange }: { value: number; max: number; onC
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative flex items-center cursor-pointer"
+      className="relative flex items-center cursor-pointer group"
       style={{ height: '16px', flex: 1 }}
     >
       {/* Track bg */}
-      <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+      <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.15)' }} />
       {/* Fill */}
       <div
-        className="absolute rounded-full"
+        className="absolute rounded-full transition-all duration-100"
         style={{
           height: '4px',
           width: `${pct}%`,
-          backgroundColor: hovered ? '#1db954' : 'white',
-          transition: 'background-color 0.1s, width 0.1s linear',
+          backgroundColor: hovered ? 'var(--sp-green)' : 'white',
+          boxShadow: hovered ? '0 0 12px var(--sp-green)' : 'none',
         }}
       />
       {/* Thumb — show on hover */}
@@ -53,8 +54,9 @@ function ProgressBar({ value, max, onChange }: { value: number; max: number; onC
           transform: 'translateX(-50%)',
           backgroundColor: 'white',
           opacity: hovered ? 1 : 0,
-          transition: 'opacity 0.15s',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+          transition: 'opacity 0.15s, transform 0.15s',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.8)',
+          scale: hovered ? 1.2 : 1,
         }}
       />
     </div>
@@ -105,17 +107,24 @@ function VolumeBar({ value, onChange }: { value: number; onChange: (v: number) =
   );
 }
 
-function CtrlBtn({ children, onClick, active }: any) {
-  return (
+function CtrlBtn({ children, onClick, active, tooltip }: any) {
+  const btn = (
     <button
       onClick={onClick}
-      style={{ color: active ? '#1db954' : '#b3b3b3', transition: 'color 0.1s', lineHeight: 0 }}
+      style={{ color: active ? 'var(--sp-green)' : 'rgba(255,255,255,0.6)', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', lineHeight: 0 }}
       onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'white'; }}
-      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#b3b3b3'; }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.6)'; }}
+      className="hover:scale-110 active:scale-95"
     >
       {children}
     </button>
   );
+
+  if (tooltip) {
+    return <VibeTooltip content={tooltip}>{btn}</VibeTooltip>;
+  }
+
+  return btn;
 }
 
 export function PlayerBar() {
@@ -187,52 +196,62 @@ export function PlayerBar() {
             <CtrlBtn
               onClick={() => smartShuffle(null)}
               active={state.shuffleMood === null && state.queue.length > 0}
+              tooltip="Shuffle"
             >
-              <Shuffle size={16} strokeWidth={1.5} />
+              <Shuffle size={16} strokeWidth={2} />
             </CtrlBtn>
 
-          <motion.button
-            onClick={previousTrack}
-            whileTap={{ scale: 0.9 }}
-            style={{ color: '#b3b3b3', lineHeight: 0 }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#b3b3b3')}
-          >
-            <SkipBack size={18} fill="currentColor" strokeWidth={0} />
-          </motion.button>
+          <VibeTooltip content="Previous">
+            <motion.button
+              onClick={previousTrack}
+              whileTap={{ scale: 0.9 }}
+              className="hover:scale-110 transition-transform"
+              style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 0 }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)')}
+            >
+              <SkipBack size={20} fill="currentColor" strokeWidth={0} />
+            </motion.button>
+          </VibeTooltip>
 
-          <motion.button
-            onClick={togglePlay}
-            whileTap={{ scale: 0.94 }}
-            className="flex items-center justify-center rounded-full"
-            style={{
-              width: '32px', height: '32px',
-              backgroundColor: state.currentTrack ? 'white' : 'rgba(255,255,255,0.3)',
-              flexShrink: 0,
-            }}
-          >
-            {state.isPlaying
-              ? <Pause size={14} fill="black" strokeWidth={0} />
-              : <Play size={14} fill="black" strokeWidth={0} style={{ marginLeft: '2px' }} />}
-          </motion.button>
+          <VibeTooltip content={state.isPlaying ? "Pause" : "Play"}>
+            <motion.button
+              onClick={togglePlay}
+              whileTap={{ scale: 0.9 }}
+              className="flex items-center justify-center rounded-full hover:scale-105 transition-transform"
+              style={{
+                width: '40px', height: '40px',
+                backgroundColor: 'white',
+                flexShrink: 0,
+                boxShadow: '0 4px 20px rgba(255,255,255,0.3)',
+              }}
+            >
+              {state.isPlaying
+                ? <Pause size={18} fill="black" strokeWidth={0} />
+                : <Play size={18} fill="black" strokeWidth={0} style={{ marginLeft: '2px' }} />}
+            </motion.button>
+          </VibeTooltip>
 
-          <motion.button
-            onClick={nextTrack}
-            whileTap={{ scale: 0.9 }}
-            style={{ color: '#b3b3b3', lineHeight: 0 }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#b3b3b3')}
-          >
-            <SkipForward size={18} fill="currentColor" strokeWidth={0} />
-          </motion.button>
+          <VibeTooltip content="Next">
+            <motion.button
+              onClick={nextTrack}
+              whileTap={{ scale: 0.9 }}
+              className="hover:scale-110 transition-transform"
+              style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 0 }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'white')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)')}
+            >
+              <SkipForward size={20} fill="currentColor" strokeWidth={0} />
+            </motion.button>
+          </VibeTooltip>
 
-          <CtrlBtn><Repeat size={16} strokeWidth={1.5} /></CtrlBtn>
+          <CtrlBtn tooltip="Repeat"><Repeat size={16} strokeWidth={2} /></CtrlBtn>
           <CtrlBtn 
             onClick={toggleRadio} 
             active={state.radioMode}
-            title="Radio Mode"
+            tooltip="Radio Mode"
           >
-            <Radio size={16} strokeWidth={1.5} />
+            <Radio size={16} strokeWidth={2} />
           </CtrlBtn>
         </div>
       </div>
