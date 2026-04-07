@@ -24,6 +24,7 @@ import { ConcertPlayer } from '@/components/player-modes/concert-player';
 import { NightDrivePlayer } from '@/components/player-modes/night-drive-player';
 import { ListenTogetherPanel } from '@/components/listen-together-panel';
 import { AuroraBackground } from '@/components/aurora-background';
+import { FrequencyVisualizer } from '@/components/frequency-visualizer';
 
 export function NowPlayingScreen() {
   const { state, togglePlay, seek, setVolume, nextTrack, previousTrack, toggleMute, toggleRadio, setPlayerMode } = useAudio();
@@ -75,7 +76,7 @@ export function NowPlayingScreen() {
           onDragEnd={handleDragEnd}
         >
           {/* Background — Aurora effect reacting to accent color */}
-          <AuroraBackground />
+          <AuroraBackground color={state.accentColor} reactive={true} />
           {/* Bottom gradient and subtle noise for texture */}
           <div 
             className="absolute inset-0 z-0 bg-noise" 
@@ -186,6 +187,16 @@ export function NowPlayingScreen() {
                   </div>
                 </>
               )}
+            </div>
+
+            {/* Frequency Visualizer */}
+            <div className="h-16 w-full mb-8 opacity-40">
+              <FrequencyVisualizer 
+                barColor={state.accentColor} 
+                barWidth={3} 
+                gap={2} 
+                sensitivity={1.2}
+              />
             </div>
 
             {/* Progress */}

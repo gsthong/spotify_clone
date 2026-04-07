@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { MoodShuffleBar } from './mood-shuffle-bar';
 import { VibeTooltip } from './vibe-tooltip';
+import { FrequencyVisualizer } from './frequency-visualizer';
 
 function ProgressBar({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -171,6 +172,17 @@ export function PlayerBar() {
               <p style={{ fontSize: '11px', color: '#b3b3b3', marginTop: '2px' }}>
                 {state.currentTrack.artist}
               </p>
+              {/* Mini Visualizer */}
+              {state.isPlaying && (
+                <div className="h-2 w-12 mt-1 opacity-60">
+                  <FrequencyVisualizer 
+                    barColor={state.accentColor} 
+                    barWidth={2} 
+                    gap={1} 
+                    sensitivity={0.8}
+                  />
+                </div>
+              )}
             </div>
             <motion.button
               onClick={() => setIsFavorite(f => !f)}
