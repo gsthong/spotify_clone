@@ -23,6 +23,7 @@ export function FrequencyVisualizer({
   const { analyserRef, state } = useAudio();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
+  const rippleRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,8 +37,15 @@ export function FrequencyVisualizer({
       if (!analyser || !state.isPlaying) {
         // Clear canvas if not playing or no analyser
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        rippleRef.current = 0;
         animationRef.current = requestAnimationFrame(render);
         return;
+      }
+
+      if (state.kinetic?.isBeat) {
+        rippleRef.current = 1;
+      } else {
+        rippleRef.current *= 0.92; // Fade out ripple
       }
 
       const bufferLength = analyser.frequencyBinCount;
@@ -79,6 +87,18 @@ export function FrequencyVisualizer({
           ctx.beginPath();
           ctx.roundRect(x, y, barWidth, val, [2, 2, 0, 0]);
           ctx.fill();
+
+          // Beat Ripple
+          if (rippleRef.current > 0.01) {
+            ctx.save();
+            ctx.globalAlpha = rippleRef.current * 0.3;
+            ctx.strokeStyle = barColor;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(width / 2, height / 2, rippleRef.current * (width / 2), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
 
           // Add a "bloom" cap
           if (val > 10) {

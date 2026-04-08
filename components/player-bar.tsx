@@ -14,7 +14,7 @@ import { MoodShuffleBar } from './mood-shuffle-bar';
 import { VibeTooltip } from './vibe-tooltip';
 import { FrequencyVisualizer } from './frequency-visualizer';
 
-function ProgressBar({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
+function ProgressBar({ value, max, onChange, kinetic }: { value: number; max: number; onChange: (v: number) => void, kinetic?: any }) {
   const ref = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
@@ -36,14 +36,15 @@ function ProgressBar({ value, max, onChange }: { value: number; max: number; onC
     >
       {/* Track bg */}
       <div className="absolute w-full rounded-full" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.15)' }} />
-      {/* Fill */}
       <div
         className="absolute rounded-full transition-all duration-100"
         style={{
           height: '4px',
           width: `${pct}%`,
           backgroundColor: hovered ? 'var(--sp-green)' : 'white',
-          boxShadow: hovered ? '0 0 12px var(--sp-green)' : 'none',
+          boxShadow: hovered || kinetic?.isBeat 
+            ? `0 0 ${kinetic?.isBeat ? 15 : 12}px ${hovered ? 'var(--sp-green)' : 'white'}` 
+            : 'none',
         }}
       />
       {/* Thumb — show on hover */}
@@ -137,11 +138,17 @@ export function PlayerBar() {
 
   return (
     <div
-      className="glass flex items-center px-4"
+      className="glass flex items-center px-4 transition-all duration-300"
       style={{
         height: '90px',
         flexShrink: 0,
         zIndex: 10,
+        borderTop: state.kinetic?.isBeat 
+          ? `1px solid ${state.accentColor}44` 
+          : '1px solid rgba(255,255,255,0.1)',
+        boxShadow: state.kinetic?.isBeat 
+          ? `0 -10px 40px -10px ${state.accentColor}22` 
+          : 'none',
       }}
     >
       {/* LEFT — track info (30%) */}
@@ -153,7 +160,12 @@ export function PlayerBar() {
               alt=""
               onClick={openNowPlaying}
               style={{ width: '56px', height: '56px', borderRadius: '4px', objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }}
-              whileHover={{ scale: 1.02 }}
+              animate={{ 
+                scale: state.kinetic?.isBeat ? 1.08 : 1,
+                rotate: state.kinetic?.isBeat ? (Math.random() > 0.5 ? 2 : -2) : 0
+              }}
+              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              whileHover={{ scale: 1.1 }}
             />
             <div style={{ minWidth: 0 }}>
               <p
@@ -273,7 +285,7 @@ export function PlayerBar() {
           <span style={{ fontSize: '11px', color: '#b3b3b3', minWidth: '32px', textAlign: 'right' }}>
             {formatTime(state.currentTime)}
           </span>
-          <ProgressBar value={state.currentTime} max={duration} onChange={seek} />
+          <ProgressBar value={state.currentTime} max={duration} onChange={seek} kinetic={state.kinetic} />
           <span style={{ fontSize: '11px', color: '#b3b3b3', minWidth: '32px' }}>
             {formatTime(duration)}
           </span>

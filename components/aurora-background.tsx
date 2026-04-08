@@ -54,8 +54,12 @@ export function AuroraBackground({
 
   // Derived reactive values
   const scale = useTransform(springIntensity, [0, 1], [1, 1.4]);
-  const blur = useTransform(springIntensity, [0, 1], [80, 40]); // Sharper when louder
   const brightness = useTransform(springIntensity, [0, 1], [0.8, 1.2]);
+
+  // Vibe Kinetic Sync
+  const kinetic = state.kinetic;
+  const bpmSpeed = kinetic ? (kinetic.bpm / 120) : 1;
+  const beatScale = kinetic?.isBeat ? 1.05 : 1;
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -69,7 +73,7 @@ export function AuroraBackground({
           background: `radial-gradient(circle at 40% 40%, ${color}66, transparent 70%)`,
           filter: 'blur(100px)',
           opacity: opacity * 1.2,
-          scale,
+          scale: useTransform(() => scale.get() * beatScale),
         }}
         animate={{
           x: [0, 50, -50, 0],
@@ -77,7 +81,7 @@ export function AuroraBackground({
           rotate: [0, 10, -10, 0],
         }}
         transition={{
-          duration: 20,
+          duration: 20 / bpmSpeed,
           repeat: Infinity,
           ease: "linear",
         }}
@@ -93,14 +97,14 @@ export function AuroraBackground({
           background: `radial-gradient(circle at 60% 60%, #ffffff22, transparent 60%)`,
           filter: 'blur(80px)',
           opacity: opacity * 0.6,
-          scale: useTransform(springIntensity, [0, 1], [1, 1.2]),
+          scale: useTransform(() => (kinetic?.isBeat ? 1.1 : 1.0) * (springIntensity.get() * 0.2 + 1)),
         }}
         animate={{
           x: [0, -40, 40, 0],
           y: [0, 50, -50, 0],
         }}
         transition={{
-          duration: 25,
+          duration: 25 / bpmSpeed,
           repeat: Infinity,
           ease: "linear",
         }}
@@ -109,11 +113,13 @@ export function AuroraBackground({
       <motion.div 
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 100%)',
+          background: `linear-gradient(to bottom, transparent 0%, rgba(0,0,0,${0.6 + (kinetic?.energy || 0) * 0.2}) 100%)`,
           backdropFilter: 'brightness(0.8)',
         }}
         animate={{
-          backgroundColor: state.isPlaying ? `rgba(0,0,0,${0.4 - intensity * 0.2})` : 'rgba(0,0,0,0.4)',
+          backgroundColor: state.isPlaying 
+            ? `rgba(0,0,0,${0.4 - intensity * 0.2 - (kinetic?.isBeat ? 0.05 : 0)})` 
+            : 'rgba(0,0,0,0.4)',
         }}
       />
     </div>

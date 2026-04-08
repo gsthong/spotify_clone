@@ -40,6 +40,12 @@ export interface AudioState {
   theme: ThemeName;
   ambientVolumes: Record<string, number>;
   streak: number;
+  kinetic?: {
+    bpm: number;
+    energy: number;
+    isBeat: boolean;
+    confidence: number;
+  };
 }
 
 export interface ColorPalette {

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { AudioState, Track, Mood } from './types';
+import { VibeKinetic } from './vibe-kinetic';
 import { useScrobble } from '@/hooks/use-scrobble';
 import { db } from './db';
 
@@ -43,6 +44,12 @@ interface AudioContextType {
   setAmbientVolume: (sound: string, volume: number) => void;
   audioRef: React.RefObject<HTMLAudioElement | null>;
   analyserRef: React.RefObject<AnalyserNode | null>;
+  kinetic?: {
+    bpm: number;
+    energy: number;
+    isBeat: boolean;
+    confidence: number;
+  };
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -73,6 +80,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     theme: 'midnight',
     ambientVolumes: {},
     streak: 0,
+    kinetic: { bpm: 120, energy: 0, isBeat: false, confidence: 0 }
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -81,6 +89,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const pannerNodeRef = useRef<PannerNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const analyserNodeRef = useRef<AnalyserNode | null>(null);
+  const beatFilterNodeRef = useRef<BiquadFilterNode | null>(null);
+  const kineticRef = useRef<VibeKinetic | null>(null);
 
   const queueRef = useRef<Track[]>([]);
   const queueIndexRef = useRef(0);
@@ -109,6 +119,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       const panner = audioCtx.createPanner();
       const gain = audioCtx.createGain();
       const analyser = audioCtx.createAnalyser();
+      
+      // Low-pass filter for beat detection (below 150Hz)
+      const beatFilter = audioCtx.createBiquadFilter();
+      beatFilter.type = 'lowpass';
+      beatFilter.frequency.setValueAtTime(150, audioCtx.currentTime);
+      beatFilter.Q.setValueAtTime(1, audioCtx.currentTime);
 
       panner.panningModel = 'HRTF';
       panner.distanceModel = 'inverse';
@@ -116,6 +132,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       source.connect(panner);
       panner.connect(gain);
       gain.connect(analyser);
+
+      // Separate branch for beat analysis
+      source.connect(beatFilter);
+
       analyser.connect(audioCtx.destination);
 
       audioContextRef.current = audioCtx;
@@ -123,10 +143,41 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       pannerNodeRef.current = panner;
       gainNodeRef.current = gain;
       analyserNodeRef.current = analyser;
+      beatFilterNodeRef.current = beatFilter;
+      kineticRef.current = new VibeKinetic(audioCtx.sampleRate);
+    };
+
+    const runKineticAnalysis = () => {
+      const analyser = analyserNodeRef.current;
+      const filter = beatFilterNodeRef.current;
+      const kinetic = kineticRef.current;
+      
+      if (!analyser || !filter || !kinetic || !isPlayingRef.current) {
+        requestAnimationFrame(runKineticAnalysis);
+        return;
+      }
+
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(frequencyData);
+
+      // We use a temporary analyzer or the time domain data from the filter directly if we could,
+      // but for simplicity, we'll use the main analyzer for energy and a smaller buffer for peaks.
+      const timeData = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(timeData);
+
+      const kineticData = kinetic.analyze(timeData, frequencyData);
+      
+      setState(prev => ({ 
+        ...prev, 
+        kinetic: kineticData 
+      }));
+
+      requestAnimationFrame(runKineticAnalysis);
     };
 
     const handleFirstInteraction = () => {
       initAudio();
+      runKineticAnalysis();
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('keydown', handleFirstInteraction);
     };
@@ -595,6 +646,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       toggleRadio, smartShuffle, reorderQueue,
       setPlayerMode, setSpatialPreset, setTheme, setAmbientVolume,
       audioRef, analyserRef: analyserNodeRef,
+      kinetic: state.kinetic,
     }}>
       {children}
     </AudioContext.Provider>
